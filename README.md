@@ -1,1 +1,1 @@
-This Repository include "Unix Basic Shell Command Implementaion" by C.
+This repository includes "Unix Basic Shell command implementation" implemented in C.
