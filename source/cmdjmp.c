@@ -15,91 +15,73 @@
 #include <errno.h>
 #include <time.h>
 
-#define SZ_STR_BUF		256		// ÀÏ¹Ý ¹®ÀÚ¿­ ¹è¿­ ±æÀÌ
+#define SZ_STR_BUF		256	// ì¼ë°˜ ë¬¸ìžì—´ ë°°ì—´ ê¸¸ì´
 #define SZ_FILE_BUF		1024	//FILE I/O BUF SIZE
 
-// get_argv_optv() ÇÔ¼ö¿¡¼­ »ó¼¼È÷ ¼³¸íÇÔ
+// get_argv_optv() í•¨ìˆ˜ì—ì„œ ìƒì„¸ížˆ ì„¤ëª…í•¨
 char *cmd;
 char *argv[100];
 char *optv[10];
 int  argc, optc;
-char cur_work_dir[SZ_STR_BUF];  //ÇöÀç ÀÛ¾÷ µð·ºÅä¸® ÀÌ¸§À» ÀúÀåÇÏ´Â ¹öÆÛ
+char cur_work_dir[SZ_STR_BUF];  //í˜„ìž¬ ìž‘ì—… ë””ë ‰í† ë¦¬ ì´ë¦„ì„ ì €ìž¥í•˜ëŠ” ë²„í¼
 jmp_buf jump;
 int cmd_idx;
-//***************************************************************************
-// 	¸ÅÅ©·Î ÇÔ¼ö
-//***************************************************************************
-// ¿©·¯ ¹®ÀÚµéÀ» ÇÏ³ªÀÇ ¹®ÀåÃ³·³ »ç¿ëÇÏ±â À§ÇÑ Á¤ÀÇ¹®
-// #defineÀ¸·Î ÇÔ¼öÃ³·³ ÀÛ¼ºÇÑ Á¤ÀÇ ¹®Àå
-// ¸ÅÅ©·Î ÇÔ¼ö´Â ÁøÂ¥ ÇÔ¼ö°¡ ¾Æ´Ï¶ó, ±× ¸ÅÅ©·Î ÇÔ¼ö¸¦ È£Ãâ(»ç¿ë)ÇÑ °÷¿¡ 
-//	 ¸ÅÅ©·Î Á¤ÀÇ(do { ... } while(0))°¡ ÄÄÆÄÀÏ ¶§ »ðÀÔµÊ.
-// ÀÏ¹Ý »ó¼ö°¡ ±³Ã¼µÇ´Â °Í°ú µ¿ÀÏÇÔ.
 
-// #define ¹®ÀåÀº ¹Ýµå½Ã ÇÑ ÁÙ¿¡ ´Ù ÀÛ¼ºÇØ¾ß ÇÔ
-//   µû¶ó¼­ ¾Æ·¡ °¢ ÁÙÀÇ ³¡¿¡ \´Â ¿©·¯ ÁÙÀ» ÇÑ ÁÙ·Î ¸¸µé¾î ÁÖ´Â ¿ªÇÒÀ» ÇÔ
-//   ¾Æ·¡ÀÇ \ µÚ¿¡¼­ ¹Ýµå½Ã ¹Ù·Î ¿£ÅÍ¸¦ ÃÄ¾ß ÇÏ°í, 
-//   ½ºÆäÀÌ½º°¡ ÀÖÀ¸¸é ¿¡·¯ ¹ß»ýÇÔ
-//
-// ¾Æ·¡ ¸ÅÅ©·Î ÇÔ¼ö¿¡¼­ returnÀº ¸ÅÅ©·Î ÇÔ¼ö ÀÚÃ¼¿¡¼­ ¸®ÅÏÀÌ ¾Æ´Ï¶ó, 
-//	 ±× ¸ÅÅ©·Î¸¦ È£ÃâÇÑ °÷ÀÇ ÇØ´ç ÇÔ¼ö¿¡¼­ ¸®ÅÏÇÑ´Ù´Â ÀÇ¹ÌÀÓ.
-//	 Áï, cp() ÇÔ¼ö¿¡¼­ PRINT_ERR_RET()À» È£ÃâÇß´Ù¸é ¾Æ·¡ returnÀº
-//	 cp() ÇÔ¼ö¿¡¼­ ¸®ÅÏÇÑ´Ù´Â ÀÇ¹ÌÀÓ.
-//--------------------------------------------------------------------------
 
-// ¿¡·¯ ¿øÀÎÀ» È­¸é¿¡ Ãâ·ÂÇÏ°í ÀÌ ¸ÅÅ©·Î¸¦ »ç¿ëÇÏ´Â ÇØ´ç ÇÔ¼ö¿¡¼­ ¸®ÅÏÇÔ
-/* cmd°¡ "ls"¶ó¸é "ls: ¿¡·¯¿øÀÎ" ÇüÅÂ·Î Ãâ·ÂµÊ */  
+// ì—ëŸ¬ ì›ì¸ì„ í™”ë©´ì— ì¶œë ¥í•˜ê³  ì´ ë§¤í¬ë¡œë¥¼ ì‚¬ìš©í•˜ëŠ” í•´ë‹¹ í•¨ìˆ˜ì—ì„œ ë¦¬í„´í•¨
+/* cmdê°€ "ls"ë¼ë©´ "ls: ì—ëŸ¬ì›ì¸" í˜•íƒœë¡œ ì¶œë ¥ë¨ */  
+#define EQUAL(_s1, _s2) 	(strcmp(_s1, _s2) == 0) // ë‘ê°œ ë¬¸ìžì—´ ê°™ìœ¼ë©´ true
+#define NOT_EQUAL(_s1, _s2)	(strcmp(_s1, _s2) != 0)	// ë‘ê°œ ë¬¸ìžì—´ ë‹¤ë¥´ë©´ true
 
-#define EQUAL(_s1, _s2) 	(strcmp(_s1, _s2) == 0) // µÎ°³ ¹®ÀÚ¿­ °°À¸¸é true
-#define NOT_EQUAL(_s1, _s2)	(strcmp(_s1, _s2) != 0)	// µÎ°³ ¹®ÀÚ¿­ ´Ù¸£¸é true
 
-// ¸í·É¾î »ç¿ë¹ýÀ» Ãâ·ÂÇÔ
-// help()¿Í proc_cmd()¿¡¼­ È£ÃâµÊ
-static void
-print_usage(char *msg, char *cmd, char *opt, char *arg) {
-	// proc_cmd()¿¡¼­ msg·Î "»ç¿ë¹ý: "À», 
-	// help()    ¿¡¼­ msg·Î "    "  À» ³Ñ°Ü ÁÜ
-	printf("%s%s", msg, cmd);	// "»ç¿ë¹ý: ls"
-	if (NOT_EQUAL(opt, "")) 	// ¿É¼ÇÀÌ ÀÖÀ¸¸é
+// ëª…ë ¹ì–´ ì‚¬ìš©ë²•ì„ ì¶œë ¥í•¨
+// help()ì™€ proc_cmd()ì—ì„œ í˜¸ì¶œë¨
+static void print_usage(char *msg, char *cmd, char *opt, char *arg) {
+	// proc_cmd()ì—ì„œ msgë¡œ "ì‚¬ìš©ë²•: "ì„, 
+	// help()    ì—ì„œ msgë¡œ "    "  ì„ ë„˜ê²¨ ì¤Œ
+	printf("%s%s", msg, cmd);	// "ì‚¬ìš©ë²•: ls"
+	if (NOT_EQUAL(opt, "")) 	// ì˜µì…˜ì´ ìžˆìœ¼ë©´
 		printf("  %s", opt);	// "-l  "
-	printf("  %s\n", arg);		// "[µð·ºÅä¸® ÀÌ¸§]"
-	// ÃÖÁ¾ Ãâ·Â ¿¹) "»ç¿ë¹ý: ls  -l  [µð·ºÅä¸® ÀÌ¸§]\n"
+	printf("  %s\n", arg);		// "[ë””ë ‰í† ë¦¬ ì´ë¦„]"
+	// ìµœì¢… ì¶œë ¥ ì˜ˆ) "ì‚¬ìš©ë²•: ls  -l  [ë””ë ‰í† ë¦¬ ì´ë¦„]\n"
 }
 
 //***************************************************************************
-//  ¸í·É¾î ¿É¼Ç ¹× ÀÎÀÚ °³¼ö°¡ Á¤È®ÇÑÁö Ã¼Å©ÇÏ´Â ÀÛ¾÷À» ¼öÇàÇÔ
+//  ëª…ë ¹ì–´ ì˜µì…˜ ë° ì¸ìž ê°œìˆ˜ê°€ ì •í™•í•œì§€ ì²´í¬í•˜ëŠ” ìž‘ì—…ì„ ìˆ˜í–‰í•¨
 //***************************************************************************
 
-// [¸í·É¾î ÀÎÀÚÀÇ °³¼ö]°¡ Á¤È®ÇÑÁö Ã¼Å©ÇÔ
-// argc: »ç¿ëÀÚ°¡ ÀÔ·ÂÇÑ ¸í·É¾î ÀÎÀÚÀÇ ¼ö
-// count: ±× ¸í·É¾î°¡ ÇÊ¿ä·Î ÇÏ´Â ÀÎÀÚÀÇ ¼ö
-// ¸®ÅÏ°ª: ÀÎÀÚ°³¼ö°¡ Á¤È®ÇÏ¸é 0, Æ²·ÈÀ¸¸é -1
-static void 
-check_arg(int count) {
+// [ëª…ë ¹ì–´ ì¸ìžì˜ ê°œìˆ˜]ê°€ ì •í™•í•œì§€ ì²´í¬í•¨
+// argc: ì‚¬ìš©ìžê°€ ìž…ë ¥í•œ ëª…ë ¹ì–´ ì¸ìžì˜ ìˆ˜
+// count: ê·¸ ëª…ë ¹ì–´ê°€ í•„ìš”ë¡œ í•˜ëŠ” ì¸ìžì˜ ìˆ˜
+// ë¦¬í„´ê°’: ì¸ìžê°œìˆ˜ê°€ ì •í™•í•˜ë©´ 0, í‹€ë ¸ìœ¼ë©´ -1
+static void check_arg(int count) {
 	if(count < 0) {
 		count = -count;
-		if(argc<=count)
+		if(argc <= count)
 			return;
 	}
-	if(argc == count)
+	if (argc == count) {
 		return;
-	if(argc > count)
-		printf("ºÒÇÊ¿äÇÑ ¸í·É¾î ÀÎÀÚ°¡ ÀÖ½À´Ï´Ù.\n");
-	else
-		printf("¸í·É¾î ÀÎÀÚÀÇ ¼ö°¡ ºÎÁ·ÇÕ´Ï´Ù.\n");
+	}
+	
+	if (argc > count) {
+		printf("ë¶ˆí•„ìš”í•œ ëª…ë ¹ì–´ ì¸ìžê°€ ìžˆìŠµë‹ˆë‹¤.\n");
+	} else {
+		printf("ëª…ë ¹ì–´ ì¸ìžì˜ ìˆ˜ê°€ ë¶€ì¡±í•©ë‹ˆë‹¤.\n");
+	}
 	longjmp(jump, -2);
 }
 
-// ¸í·É¾î¿¡¼­ Á¤È®ÇÑ [¿É¼Ç]ÀÌ ÁÖ¾îÁ³´ÂÁö Ã¼Å©ÇÔ
-// optc: »ç¿ëÀÚ°¡ ÀÔ·ÂÇÑ ¿É¼Ç °³¼ö
-// optv[i]: »ç¿ëÀÚ°¡ ÀÔ·ÂÇÑ ¿É¼Ç ¹®ÀÚ¿­
-// opt: ±× ¸í·É¾î°¡ ÇÊ¿ä·Î ÇÏ´Â ¿É¼Ç ¹®ÀÚ¿­
-// ¸®ÅÏ°ª: ¿É¼ÇÀÌ ¾øÀ¸¸é 0, ÀÖÀ¸¸é 1, ¿É¼ÇÀÌ Æ²·ÈÀ¸¸é -1
-static void 
-check_opt(char *opt) {
+// ëª…ë ¹ì–´ì—ì„œ ì •í™•í•œ [ì˜µì…˜]ì´ ì£¼ì–´ì¡ŒëŠ”ì§€ ì²´í¬í•¨
+// optc: ì‚¬ìš©ìžê°€ ìž…ë ¥í•œ ì˜µì…˜ ê°œìˆ˜
+// optv[i]: ì‚¬ìš©ìžê°€ ìž…ë ¥í•œ ì˜µì…˜ ë¬¸ìžì—´
+// opt: ê·¸ ëª…ë ¹ì–´ê°€ í•„ìš”ë¡œ í•˜ëŠ” ì˜µì…˜ ë¬¸ìžì—´
+// ë¦¬í„´ê°’: ì˜µì…˜ì´ ì—†ìœ¼ë©´ 0, ìžˆìœ¼ë©´ 1, ì˜µì…˜ì´ í‹€ë ¸ìœ¼ë©´ -1
+static void check_opt(char *opt) {
 	int i, err = 0;
-	for(i = 0; i< optc; ++i) {
+	for (i = 0; i < optc; ++i) {
 		if (NOT_EQUAL(opt, optv[i])) {
-			printf("Áö¿øµÇÁö ¾Ê´Â ¸í·É¾î ¿É¼Ç(%s)ÀÔ´Ï´Ù.\n", optv[i]);
+			printf("ì§€ì›ë˜ì§€ ì•ŠëŠ” ëª…ë ¹ì–´ ì˜µì…˜(%s)ìž…ë‹ˆë‹¤.\n", optv[i]);
 			err = -1;
 		}
 	}
@@ -107,70 +89,69 @@ check_opt(char *opt) {
 }
 
 //***************************************************************************
-// 	get_argv_optv(): ¸í·É¾î ÇÑÁÙÀ» ¸í·É¾î,¿É¼Ç,¸í·ÉÀÎÀÚ¸¦ °¢ ´Ü¾îº°·Î ºÐ¸®
+// 	get_argv_optv(): ëª…ë ¹ì–´ í•œì¤„ì„ ëª…ë ¹ì–´,ì˜µì…˜,ëª…ë ¹ì¸ìžë¥¼ ê° ë‹¨ì–´ë³„ë¡œ ë¶„ë¦¬
 //***************************************************************************
 //
-// Àü¿ªº¯¼ö
-// char *cmd; 		// ¸í·É¾î ¹®ÀÚ¿­
-// char *argv[100];	// ¸í·É¾î ÀÎÀÚ ¹®ÀÚ¿­µé ½ÃÀÛÁÖ¼Ò ÀúÀå
-// char *optv[10];	// ¸í·É¾î ¿É¼Ç ¹®ÀÚ¿­µé ½ÃÀÛÁÖ¼Ò ÀúÀå
-// int optc; // ¿É¼Ç ÅäÅ« ¼ö, Áï, optv[]¿¡ ÀúÀåµÈ ¿ø¼ÒÀÇ °³¼ö
-// int argc; // ¸í·É¾î¿Í ¿É¼ÇÀ» Á¦¿ÜÇÑ ¸í·É¾î ÀÎÀÚÀÇ ¼ö
-//			 // Áï, argv[]¿¡ ÀúÀåµÈ ¿ø¼ÒÀÇ °³¼ö
+// ì „ì—­ë³€ìˆ˜
+// char *cmd; 		// ëª…ë ¹ì–´ ë¬¸ìžì—´
+// char *argv[100];	// ëª…ë ¹ì–´ ì¸ìž ë¬¸ìžì—´ë“¤ ì‹œìž‘ì£¼ì†Œ ì €ìž¥
+// char *optv[10];	// ëª…ë ¹ì–´ ì˜µì…˜ ë¬¸ìžì—´ë“¤ ì‹œìž‘ì£¼ì†Œ ì €ìž¥
+// int optc; // ì˜µì…˜ í† í° ìˆ˜, ì¦‰, optv[]ì— ì €ìž¥ëœ ì›ì†Œì˜ ê°œìˆ˜
+// int argc; // ëª…ë ¹ì–´ì™€ ì˜µì…˜ì„ ì œì™¸í•œ ëª…ë ¹ì–´ ì¸ìžì˜ ìˆ˜
+//			 // ì¦‰, argv[]ì— ì €ìž¥ëœ ì›ì†Œì˜ ê°œìˆ˜
 
-// ÀÔ·ÂµÈ ¸í·É¾î Çà ÀüÃ¼¸¦ ÀúÀåÇÏ°í ÀÖ´Â cmd_line[]¿¡¼­
-// °¢ ÅäÅ«(´Ü¾î)À» º°°³ÀÇ ¹®ÀÚ¿­·Î ÀÚ¸¥ ÈÄ, ±× ÅäÅ«ÀÇ ½ÃÀÛ ÁÖ¼Ò¸¦ 
-// ¸í·É¾îÀÏ °æ¿ì cmd¿¡, ¿É¼ÇÀÏ °æ¿ì optv[]¿¡, 
-// ¸í·É¾î ÀÎÀÚÀÎ °æ¿ì argv[]¿¡ °¢°¢ ¼ø¼­ÀûÀ¸·Î ÀúÀåÇÑ´Ù.
+// ìž…ë ¥ëœ ëª…ë ¹ì–´ í–‰ ì „ì²´ë¥¼ ì €ìž¥í•˜ê³  ìžˆëŠ” cmd_line[]ì—ì„œ
+// ê° í† í°(ë‹¨ì–´)ì„ ë³„ê°œì˜ ë¬¸ìžì—´ë¡œ ìžë¥¸ í›„, ê·¸ í† í°ì˜ ì‹œìž‘ ì£¼ì†Œë¥¼ 
+// ëª…ë ¹ì–´ì¼ ê²½ìš° cmdì—, ì˜µì…˜ì¼ ê²½ìš° optv[]ì—, 
+// ëª…ë ¹ì–´ ì¸ìžì¸ ê²½ìš° argv[]ì— ê°ê° ìˆœì„œì ìœ¼ë¡œ ì €ìž¥í•œë‹¤.
 
-// ¿¹Á¦: get_argv_optv(cmd_line)¸¦ È£ÃâÇÏ¿© ¸®ÅÏÇÑ ÈÄÀÇ °¢ º¯¼öÀÇ °ª
+// ì˜ˆì œ: get_argv_optv(cmd_line)ë¥¼ í˜¸ì¶œí•˜ì—¬ ë¦¬í„´í•œ í›„ì˜ ê° ë³€ìˆ˜ì˜ ê°’
 //
-// cmd_line[]¿¡ "ls -l pr4" °¡ ÀúÀåµÇ¾î ÀÖÀ» °æ¿ì
+// cmd_line[]ì— "ls -l pr4" ê°€ ì €ìž¥ë˜ì–´ ìžˆì„ ê²½ìš°
 // cmd -> "ls"
 // optc = 1, optv[0] -> "-l";
 // argc = 1, argv[0] -> "pr4";
 
-// cmd_line[]¿¡ "ln -s f1 f2" °¡ ÀúÀåµÇ¾î ÀÖÀ» °æ¿ì
+// cmd_line[]ì— "ln -s f1 f2" ê°€ ì €ìž¥ë˜ì–´ ìžˆì„ ê²½ìš°
 // cmd -> "ln"
 // optc = 1, optv[0] -> "-s";
 // argc = 2, argv[0] -> "f1", argv[1] -> "f1";
 
-// cmd_line[]¿¡ "ln f1 f2" °¡ ÀúÀåµÇ¾î ÀÖÀ» °æ¿ì
+// cmd_line[]ì— "ln f1 f2" ê°€ ì €ìž¥ë˜ì–´ ìžˆì„ ê²½ìš°
 // cmd -> "ln"
 // optc = 0;
 // argc = 2, argv[0] -> "f1", argv[1] -> "f1";
 
-// cmd_line[]¿¡ "pwd" °¡ ÀúÀåµÇ¾î ÀÖÀ» °æ¿ì
+// cmd_line[]ì— "pwd" ê°€ ì €ìž¥ë˜ì–´ ìžˆì„ ê²½ìš°
 // cmd -> "pwd"
 // optc = 0;
 // argc = 0;
 
-// cmd, optv[], argv[]¿¡ ÀúÀåµÇ´Â °ÍÀº °¢ ¹®ÀÚ¿­ÀÇ ½ÃÀÛÁÖ¼Ò, 
-// Áï, °¢ ¹®ÀÚ¿­ÀÇ Ã¹ ±ÛÀÚÀÇ ÁÖ¼Ò°¡ ÀúÀåµÊ
-// µû¶ó¼­ °¢ ¹®ÀÚ¿­Àº ¿©ÀüÈ÷ cmd_line[]¿¡ ÀúÀåµÇ¾î ÀÖÀ½
+// cmd, optv[], argv[]ì— ì €ìž¥ë˜ëŠ” ê²ƒì€ ê° ë¬¸ìžì—´ì˜ ì‹œìž‘ì£¼ì†Œ, 
+// ì¦‰, ê° ë¬¸ìžì—´ì˜ ì²« ê¸€ìžì˜ ì£¼ì†Œê°€ ì €ìž¥ë¨
+// ë”°ë¼ì„œ ê° ë¬¸ìžì—´ì€ ì—¬ì „ížˆ cmd_line[]ì— ì €ìž¥ë˜ì–´ ìžˆìŒ
 
-static char *
-get_argv_optv(char *cmd_line) {
-	//  »ç¿ëÀÚ°¡ Å°º¸µå¿¡¼­ ÀÔ·ÂÇÑ ¸í·É¾î ÇÑ ÁÙÀÌ cmd_line[]¿¡ ÀúÀåµÇ¾î ÀÖÀ½
-	//  cmd_line[]¿¡ "ln -s file1 file2"°¡ ÀúÀåµÇ¾î ÀÖ´Ù°í °¡Á¤ÇÏÀÚ.
+static char * get_argv_optv(char *cmd_line) {
+	//  ì‚¬ìš©ìžê°€ í‚¤ë³´ë“œì—ì„œ ìž…ë ¥í•œ ëª…ë ¹ì–´ í•œ ì¤„ì´ cmd_line[]ì— ì €ìž¥ë˜ì–´ ìžˆìŒ
+	//  cmd_line[]ì— "ln -s file1 file2"ê°€ ì €ìž¥ë˜ì–´ ìžˆë‹¤ê³  ê°€ì •í•˜ìž.
 	//
-	//  strtok()ÀÇ µÎ¹øÂ° ÀÎÀÚÀÎ " \t\n"´Â ÅäÅ«(´Ü¾î)À» ±¸ºÐÇÏ´Â ±¸ºÐÀÚÀÓ.
-	//	Áï, ½ºÆäÀÌ½º ' ', ÅÇ '\t', ¿£ÅÍ '\n' ±ÛÀÚ°¡ ³ª¿À¸é ÅäÅ«À» ÀÚ¸§.
-	//  strtok() ÇÔ¼ö´Â cmd_line[]¿¡ ÀÖ´Â ¹®ÀÚ¿­(ÀüÃ¼°¡ ÇÏ³ªÀÇ ¹®ÀÚ¿­)¿¡¼­
-	// 	Ã¹ ´Ü¾î "ln"¸¦ Ã£¾Æ ´Ü¾îÀÇ ³¡¿¡ null¹®ÀÚ('\0')¸¦ »ðÀÔÇØ 
-	// 	´Ü¾î¸¦ ÇÏ³ªÀÇ ¹®ÀÚ¿­·Î ¸¸µé°í(´Ü¾î¸¦ ÀÚ¸¥´Ù°í Ç¥ÇöÇÔ), 
-	//	±× ¹®ÀÚ¿­ÀÇ Ã¹ ±ÛÀÚ ÁÖ¼Ò¸¦ ¸®ÅÏÇÔ.
-	//  Ã¹ ´Ü¾î¸¦ Àß¶ó ³»±â À§ÇØ strtok() È£Ãâ ½Ã Ã¹ ÀÎÀÚ·Î cmd_lineÀ» ÁÖ°í, 
-	//	´ÙÀ½¿¡ ¶Ç È£ÃâÇÒ ¶© Ã¹ ÀÎÀÚ·Î NULLÀ» ÁÖ´Âµ¥,
-	//	ÀÌ °æ¿ì ¾Õ¿¡¼­ Ã³¸®ÇÑ ´Ü¾îÀÇ ±× ´ÙÀ½ ´Ü¾î¸¦ Ã£¾Æ ÀÚ¸¥´Ù.
-	// 	¸¸¾à ÇÔ¼ö È£Ãâ ½Ã ´õ ÀÌ»ó Ã³¸®ÇÒ ´Ü¾î°¡ ¾ø´Ù¸é NULLÀ» ¸®ÅÏÇÔ.
+	//  strtok()ì˜ ë‘ë²ˆì§¸ ì¸ìžì¸ " \t\n"ëŠ” í† í°(ë‹¨ì–´)ì„ êµ¬ë¶„í•˜ëŠ” êµ¬ë¶„ìžìž„.
+	//	ì¦‰, ìŠ¤íŽ˜ì´ìŠ¤ ' ', íƒ­ '\t', ì—”í„° '\n' ê¸€ìžê°€ ë‚˜ì˜¤ë©´ í† í°ì„ ìžë¦„.
+	//  strtok() í•¨ìˆ˜ëŠ” cmd_line[]ì— ìžˆëŠ” ë¬¸ìžì—´(ì „ì²´ê°€ í•˜ë‚˜ì˜ ë¬¸ìžì—´)ì—ì„œ
+	// 	ì²« ë‹¨ì–´ "ln"ë¥¼ ì°¾ì•„ ë‹¨ì–´ì˜ ëì— nullë¬¸ìž('\0')ë¥¼ ì‚½ìž…í•´ 
+	// 	ë‹¨ì–´ë¥¼ í•˜ë‚˜ì˜ ë¬¸ìžì—´ë¡œ ë§Œë“¤ê³ (ë‹¨ì–´ë¥¼ ìžë¥¸ë‹¤ê³  í‘œí˜„í•¨), 
+	//	ê·¸ ë¬¸ìžì—´ì˜ ì²« ê¸€ìž ì£¼ì†Œë¥¼ ë¦¬í„´í•¨.
+	//  ì²« ë‹¨ì–´ë¥¼ ìž˜ë¼ ë‚´ê¸° ìœ„í•´ strtok() í˜¸ì¶œ ì‹œ ì²« ì¸ìžë¡œ cmd_lineì„ ì£¼ê³ , 
+	//	ë‹¤ìŒì— ë˜ í˜¸ì¶œí•  ë• ì²« ì¸ìžë¡œ NULLì„ ì£¼ëŠ”ë°,
+	//	ì´ ê²½ìš° ì•žì—ì„œ ì²˜ë¦¬í•œ ë‹¨ì–´ì˜ ê·¸ ë‹¤ìŒ ë‹¨ì–´ë¥¼ ì°¾ì•„ ìžë¥¸ë‹¤.
+	// 	ë§Œì•½ í•¨ìˆ˜ í˜¸ì¶œ ì‹œ ë” ì´ìƒ ì²˜ë¦¬í•  ë‹¨ì–´ê°€ ì—†ë‹¤ë©´ NULLì„ ë¦¬í„´í•¨.
 	//
-	//  °á±¹ ÇÔ¼ö È£Ãâ [ÈÄ]¿¡´Â cmd_line[]°¡ "ln\0-s\0file1\0file2"·Î º¯ÇÔ
-	//	'\0'´Â null¹®ÀÚ(ÇÑ ±ÛÀÚÀÓ)¸¦ Ç¥ÇöÇÑ °ÍÀÌ°í,
-	//	¸Þ¸ð¸®¿¡´Â ASCI ÄÚµå 0(Á¤¼ö°ª)ÀÌ ÇÑ byte·Î ÀúÀåµÇ¾î ÀÖÀ½. 
-	//	¸ðµç ¹®ÀÚ¿­ ³¡¿¡´Â ÀÌ ¹®ÀÚ°¡ ÀÖÀ½(ÇÔ¼öµéÀÌ ÀÚµ¿À¸·Î »ðÀÔÇØ ÁÜ)
-	//  Áï, cmd_line[]¿¡´Â ³×°³ÀÇ ¹®ÀÚ¿­ÀÌ ÀúÀåµÇ¾î ÀÖ°í,
-	//	°¢ ¹®ÀÚ¿­ÀÇ ½ÃÀÛ ÁÖ¼Ò´Â optv[]¿Í argv[]¿¡ ºÐ¸®µÇ¾î ÀúÀåµÇ¾î ÀÖÀ½
+	//  ê²°êµ­ í•¨ìˆ˜ í˜¸ì¶œ [í›„]ì—ëŠ” cmd_line[]ê°€ "ln\0-s\0file1\0file2"ë¡œ ë³€í•¨
+	//	'\0'ëŠ” nullë¬¸ìž(í•œ ê¸€ìžìž„)ë¥¼ í‘œí˜„í•œ ê²ƒì´ê³ ,
+	//	ë©”ëª¨ë¦¬ì—ëŠ” ASCI ì½”ë“œ 0(ì •ìˆ˜ê°’)ì´ í•œ byteë¡œ ì €ìž¥ë˜ì–´ ìžˆìŒ. 
+	//	ëª¨ë“  ë¬¸ìžì—´ ëì—ëŠ” ì´ ë¬¸ìžê°€ ìžˆìŒ(í•¨ìˆ˜ë“¤ì´ ìžë™ìœ¼ë¡œ ì‚½ìž…í•´ ì¤Œ)
+	//  ì¦‰, cmd_line[]ì—ëŠ” ë„¤ê°œì˜ ë¬¸ìžì—´ì´ ì €ìž¥ë˜ì–´ ìžˆê³ ,
+	//	ê° ë¬¸ìžì—´ì˜ ì‹œìž‘ ì£¼ì†ŒëŠ” optv[]ì™€ argv[]ì— ë¶„ë¦¬ë˜ì–´ ì €ìž¥ë˜ì–´ ìžˆìŒ
 	char* tok;
 	argc = optc = 0;
 
@@ -178,20 +159,20 @@ get_argv_optv(char *cmd_line) {
 		return (NULL);
 
 	for( ; (tok = strtok(NULL, " \t\n")) != NULL; ) {
-		if(tok[0] == '-')
+		if(tok[0] == '-') {
 			optv[optc++] = tok;
-		else
+		} else {
 			argv[argc++] = tok;
+		}
 	}
 	return (cmd);
 }
-//***************************************************************************
-// ls() ÇÔ¼ö¿¡¼­ È£ÃâµÇ´Â ÇÔ¼öµé ½ÃÀÛ
-//
-// "ls -l" ¿É¼Ç ÁØ °æ¿ì ÇÏ³ªÀÇ ÆÄÀÏ¿¡ ´ëÇÑ »ó¼¼Á¤º¸ Ãâ·ÂÇÏ±â
 
-static void
-print_attr(char* path, char* fn) {
+//***************************************************************************
+// ls() í•¨ìˆ˜ì—ì„œ í˜¸ì¶œë˜ëŠ” í•¨ìˆ˜ë“¤ ì‹œìž‘
+
+// "ls -l" ì˜µì…˜ ì¤€ ê²½ìš° í•˜ë‚˜ì˜ íŒŒì¼ì— ëŒ€í•œ ìƒì„¸ì •ë³´ ì¶œë ¥í•˜ê¸°
+static void print_attr(char* path, char* fn) {
 	struct passwd *pwp;
 	struct group *grp;
 	struct stat st_buf;
@@ -200,15 +181,18 @@ print_attr(char* path, char* fn) {
 	struct tm *tmp;
 
 	sprintf(full_path, "%s/%s", path, fn);
-	if (lstat(full_path, &st_buf) < 0 )
-		longjmp(jump, -1);	
-	if 		(S_ISREG(st_buf.st_mode))	c = '-';
+	if (lstat(full_path, &st_buf) < 0 ) {
+		longjmp(jump, -1);
+	}
+	
+	if (S_ISREG(st_buf.st_mode))	c = '-';
 	else if (S_ISDIR(st_buf.st_mode))	c = 'd';
 	else if (S_ISCHR(st_buf.st_mode))	c = 'c';
 	else if (S_ISBLK(st_buf.st_mode))	c = 'b';
 	else if (S_ISFIFO(st_buf.st_mode))	c = 'f';
 	else if (S_ISLNK(st_buf.st_mode))	c = 'l';
 	else if (S_ISSOCK(st_buf.st_mode))	c = 's';
+	
 	buf[0] = c;
 	buf[1] = (st_buf.st_mode & S_IRUSR) ? 'r' : '-';
 	buf[2] = (st_buf.st_mode & S_IWUSR) ? 'w' : '-';
@@ -221,11 +205,13 @@ print_attr(char* path, char* fn) {
 	buf[9] = (st_buf.st_mode & S_IXOTH) ? 'x' : '-';
 	buf[10] = '\0';
 	printf("%s", buf);
+	
 	pwp = getpwuid(st_buf.st_uid);
 	grp = getgrgid(st_buf.st_gid);
 	tmp = localtime(&st_buf.st_mtime);
 	strftime(time_buf, 13, "%b %d %H:%M", tmp);
 	sprintf(buf+10, " %3ld %-8s %-8s %8ld %s %s", st_buf.st_nlink, pwp->pw_name, grp->gr_name, st_buf.st_size, time_buf, fn);
+
 	if(S_ISLNK(st_buf.st_mode)) {
 		int len, bytes;
 		strcat(buf, " -> ");
@@ -236,140 +222,146 @@ print_attr(char* path, char* fn) {
 	printf("%s\n", buf);
 }
 
-// "ls -l" ¿É¼Ç ÁØ °æ¿ì : µð·ºÅä¸®ÀÇ ¸ðµç ÆÄÀÏ¿¡ ´ëÇØ »ó¼¼Á¤º¸ Ãâ·ÂÇÏ±â
-static void
-print_detail(DIR *dp, char *path) {
+
+// "ls -l" ì˜µì…˜ ì¤€ ê²½ìš° : ë””ë ‰í† ë¦¬ì˜ ëª¨ë“  íŒŒì¼ì— ëŒ€í•´ ìƒì„¸ì •ë³´ ì¶œë ¥í•˜ê¸°
+static void print_detail(DIR *dp, char *path) {
 	struct dirent *dirp;
 
-	while ((dirp = readdir(dp)) != NULL)
+	while ((dirp = readdir(dp)) != NULL) {
 		print_attr(path, dirp->d_name);
+	}
 	closedir(dp);
 }
 
-// "ls"¸¸ ÇÑ °æ¿ì : °¡Àå ±ä ÆÄÀÏÀÌ¸§ÀÇ ±æÀÌ¸¦ °è»êÇÑ ÈÄ
-// 					ÀÌ¸¦ ±âÁØÀ¸·Î ÇÑ ÁÙ¿¡ Ãâ·ÂÇÒ ¼ö ÀÖ´Â ¿­(column)ÀÇ °³¼ö¸¦ °áÁ¤
-static void
-get_max_name_len(DIR *dp, int *p_max_name_len, int *p_num_per_line) {
+
+// "ls"ë§Œ í•œ ê²½ìš° : ê°€ìž¥ ê¸´ íŒŒì¼ì´ë¦„ì˜ ê¸¸ì´ë¥¼ ê³„ì‚°í•œ í›„ ì´ë¥¼ ê¸°ì¤€ìœ¼ë¡œ í•œ ì¤„ì— ì¶œë ¥í•  ìˆ˜ ìžˆëŠ” ì—´(column)ì˜ ê°œìˆ˜ë¥¼ ê²°ì •
+static void get_max_name_len(DIR *dp, int *p_max_name_len, int *p_num_per_line) {
 	struct dirent *dirp;
 	int max_name_len = 0;
 
-	//¸ðµç ÆÄÀÏ ÀÌ¸§À» ÀÐ¾î °¡Àå ±ä ÀÌ¸§ÀÇ ±æÀÌ¸¦ °áÁ¤ÇÔ
+	//ëª¨ë“  íŒŒì¼ ì´ë¦„ì„ ì½ì–´ ê°€ìž¥ ê¸´ ì´ë¦„ì˜ ê¸¸ì´ë¥¼ ê²°ì •í•¨
 	while ((dirp = readdir(dp)) != NULL) {
 		int name_len = strlen(dirp->d_name);
-		if (name_len > max_name_len)
+		if (name_len > max_name_len) {
 			max_name_len = name_len;
+		}
 	}
-	// µð·ºÅä¸® ÀÐ´Â À§Ä¡ Ã³À½À¸·Î µÇµ¹¸®±â
+	// ë””ë ‰í† ë¦¬ ì½ëŠ” ìœ„ì¹˜ ì²˜ìŒìœ¼ë¡œ ë˜ëŒë¦¬ê¸°
 	rewinddir(dp);
-	// °¡Àå ±ä ÆÄÀÏÀÌ¸§ + ÀÌ¸§ µÚÀÇ ¿©À¯ °ø°£
+	
+	// ê°€ìž¥ ê¸´ íŒŒì¼ì´ë¦„ + ì´ë¦„ ë’¤ì˜ ì—¬ìœ  ê³µê°„
 	max_name_len += 4;
-	// ÇÑ ÁÙ¿¡ Ãâ·ÂÇÒ ÆÄÀÏÀÌ¸§ÀÇ °³¼ö °áÁ¤
+	
+	// í•œ ì¤„ì— ì¶œë ¥í•  íŒŒì¼ì´ë¦„ì˜ ê°œìˆ˜ ê²°ì •
 	*p_num_per_line = 80 / max_name_len;
 	*p_max_name_len = max_name_len;
 }
 
-// "ls"¸¸ ÇÑ °æ¿ì : µð·ºÅä¸®ÀÇ ¸ðµç ÆÄÀÏ¿¡ ´ëÇØ ÀÌ¸§¸¸ Ãâ·ÂÇÏ±â
-static void
-print_name(DIR *dp) {
+	
+// "ls"ë§Œ í•œ ê²½ìš° : ë””ë ‰í† ë¦¬ì˜ ëª¨ë“  íŒŒì¼ì— ëŒ€í•´ ì´ë¦„ë§Œ ì¶œë ¥í•˜ê¸°
+static void print_name(DIR *dp) {
 	struct dirent *dirp;
 	int max_name_len, num_per_line, cnt = 0;
 
-	// max_name_len : °¡Àå ±ä ÆÄÀÏÀÌ¸§ ±æÀÌ +4 (ÀÌ¸§ µÚÀÇ ¿©À¯°ø°£)
-	// num_per_line : ÇÑ ÁÙ¿¡ Ãâ·ÂÇÒ ¼ö ÀÖ´Â ÃÑ ÆÄÀÏÀÌ¸§ÀÇ °³¼ö
+	// max_name_len : ê°€ìž¥ ê¸´ íŒŒì¼ì´ë¦„ ê¸¸ì´ +4 (ì´ë¦„ ë’¤ì˜ ì—¬ìœ ê³µê°„)
+	// num_per_line : í•œ ì¤„ì— ì¶œë ¥í•  ìˆ˜ ìžˆëŠ” ì´ íŒŒì¼ì´ë¦„ì˜ ê°œìˆ˜
 
 	get_max_name_len(dp, &max_name_len, &num_per_line);
 	while ((dirp = readdir(dp)) != NULL) {
 		printf("%-*s", max_name_len, dirp->d_name);
-		// cnt : ÇöÀç±îÁö ÇÑ ÁÙ¿¡ Ãâ·ÂÇÑ ÆÄÀÏÀÌ¸§ °³¼ö
-		// ÇÑ ÁÙ¿¡ Ãâ·ÂÇÒ ¼ö ÀÖ´Â ÆÄÀÏÀÌ¸§ÀÇ °³¼ö¸¸Å­
-		// ÀÌ¹Ì Ãâ·ÂÇßÀ¸¸é ÁÙ ¹Ù²Ù±â
 
-		if((++cnt % num_per_line) == 0)
+		// cnt : í˜„ìž¬ê¹Œì§€ í•œ ì¤„ì— ì¶œë ¥í•œ íŒŒì¼ì´ë¦„ ê°œìˆ˜
+		// í•œ ì¤„ì— ì¶œë ¥í•  ìˆ˜ ìžˆëŠ” íŒŒì¼ì´ë¦„ì˜ ê°œìˆ˜ë§Œí¼
+		// ì´ë¯¸ ì¶œë ¥í–ˆìœ¼ë©´ ì¤„ ë°”ê¾¸ê¸°
+		if((++cnt % num_per_line) == 0) {
 			printf("\n");
 		}
-		// ¸¶Áö¸· ÁÙ¿¡ ÁÙ ¹Ù²Ù±â ¹®ÀÚ Ãâ·Â
-		// ¾Õ¿¡¼­ ÀÌ¹Ì ÇÑ ÁÙ¿¡ Ãâ·ÂÇÒ ¼ö ÀÖ´Â ÆÄÀÏÀÌ¸§ÀÇ °³¼ö¸¸Å­ ÀÌ¹Ì Ãâ·ÂÇÏ¿©
-		// ÁÙ ¹Ù²Ù±â¸¦ ÇßÀ½¤¤ ¶Ç ´Ù½Ã ÁÙ ¹Ù²Ù±â¸¦ ÇÏÁö ¾ÊÀ½
-		if ((cnt % num_per_line) != 0)
-			printf("\n");
 	}
+	
+	// ë§ˆì§€ë§‰ ì¤„ì— ì¤„ ë°”ê¾¸ê¸° ë¬¸ìž ì¶œë ¥
+	// ì•žì—ì„œ ì´ë¯¸ í•œ ì¤„ì— ì¶œë ¥í•  ìˆ˜ ìžˆëŠ” íŒŒì¼ì´ë¦„ì˜ ê°œìˆ˜ë§Œí¼ ì´ë¯¸ ì¶œë ¥í•˜ì—¬
+	// ì¤„ ë°”ê¾¸ê¸°ë¥¼ í–ˆìœ¼ë©´ ë˜ ë‹¤ì‹œ ì¤„ ë°”ê¾¸ê¸°ë¥¼ í•˜ì§€ ì•ŠìŒ
+	if ((cnt % num_per_line) != 0) {
+		printf("\n");
+	}
+}
 // 
-// ls() ÇÔ¼ö¿¡¼­ È£ÃâµÇ´Â ÇÔ¼öµé ³¡
+// ls() í•¨ìˆ˜ì—ì„œ í˜¸ì¶œë˜ëŠ” í•¨ìˆ˜ë“¤ ë
 //***************************************************************************
 
 
 //***************************************************************************
 //
-// 	¿©±â¼­ºÎÅÍ °¢ ¸í·É¾î ±¸Çö ½ÃÀÛ
-//
-//
+// 	ì—¬ê¸°ì„œë¶€í„° ê° ëª…ë ¹ì–´ êµ¬í˜„ ì‹œìž‘
 
-//ÇöÀç ÀÛ¾÷ µð·ºÅä¸®¸¦ º¯°æÇÏ´Â ¸í·É¾î
-//»ç¿ë¹ý : cd [µð·ºÅä¸® ÀÌ¸§]
-//			[]´Â ¸í·É¾î ÀÎÀÚ¸¦ ÁÖ¾îµµ µÇ°í ¾È ÁÖ¾îµµ µÊÀ» ÀÇ¹ÌÇÔ
-// argv[0] -> "µð·ºÅä¸® ÀÌ¸§"; [µð·ºÅä¸® ÀÌ¸§]À» ÁØ °æ¿ì
-// argc = [µð·ºÅä¸® ÀÌ¸§]À» ÁØ °æ¿ì 1, ÁÖÁö ¾Ê¾ÒÀ» °æ¿ì 0
-
-void
-cat(void) {
+void cat(void) {
 	int fd, len;
 	char buf[SZ_FILE_BUF];
 
-	if((fd = open(argv[0], O_RDONLY)) < 0)
+	if ((fd = open(argv[0], O_RDONLY)) < 0) {
 		longjmp(jump , -1);
+	}
 
-	while((len = read(fd, buf, SZ_FILE_BUF)) > 0) {
+	while ((len = read(fd, buf, SZ_FILE_BUF)) > 0) {
 		if(write(STDOUT_FILENO, buf, len) != len) {
 			len = -1;
 			break;
 		}
 	}
 
-	if(len<0) 
+	if (len < 0) {
 		perror(cmd);
+	}
 	close(fd);
 }
 
-void 
-cd(void) {
+
+// í˜„ìž¬ ìž‘ì—… ë””ë ‰í† ë¦¬ë¥¼ ë³€ê²½í•˜ëŠ” ëª…ë ¹ì–´
+// ì‚¬ìš©ë²• : cd [ë””ë ‰í† ë¦¬ ì´ë¦„]
+//			[]ëŠ” ëª…ë ¹ì–´ ì¸ìžë¥¼ ì£¼ì–´ë„ ë˜ê³  ì•ˆ ì£¼ì–´ë„ ë¨ì„ ì˜ë¯¸í•¨
+// argv[0] -> "ë””ë ‰í† ë¦¬ ì´ë¦„"; [ë””ë ‰í† ë¦¬ ì´ë¦„]ì„ ì¤€ ê²½ìš°
+// argc = [ë””ë ‰í† ë¦¬ ì´ë¦„]ì„ ì¤€ ê²½ìš° 1, ì£¼ì§€ ì•Šì•˜ì„ ê²½ìš° 0
+void cd(void) {
 	struct passwd *pwp = getpwuid(getuid());
 
-	if(argc==0)
+	if(argc==0) {
 		argv[0] = pwp->pw_dir;
-	if(chdir(argv[0]) < 0)
+	}
+	if(chdir(argv[0]) < 0) {
 		longjmp(jump, -1);
-	else
+	} else {
 		getcwd(cur_work_dir, SZ_STR_BUF);
+	}
 }
 
-// ÆÄÀÏÀ» ´Ù¸¥ ÀÌ¸§À¸·Î º¹»çÇÏ´Â ¸í·É¾î
-// »ç¿ë¹ý: cp  ¿øº»ÆÄÀÏÀÌ¸§  º¹»çµÈÆÄÀÏÀÌ¸§
-// argv[0] -> "¿øº»ÆÄÀÏÀÌ¸§"
-// argv[1] -> "º¹»çµÈÆÄÀÏÀÌ¸§"
 
-void
-changemod(void) {
+void changemod(void) {
 	int mode;
 	sscanf(argv[0], "%o", &mode);
 
-	if(chmod(argv[1], mode) < 0)
-		longjmp(jump, -1);	
+	if(chmod(argv[1], mode) < 0) {
+		longjmp(jump, -1);
+	}
 }
 
-void
-cp(void) {
+
+// íŒŒì¼ì„ ë‹¤ë¥¸ ì´ë¦„ìœ¼ë¡œ ë³µì‚¬í•˜ëŠ” ëª…ë ¹ì–´
+// ì‚¬ìš©ë²•: cp  ì›ë³¸íŒŒì¼ì´ë¦„  ë³µì‚¬ëœíŒŒì¼ì´ë¦„
+// argv[0] -> "ì›ë³¸íŒŒì¼ì´ë¦„"
+// argv[1] -> "ë³µì‚¬ëœíŒŒì¼ì´ë¦„"
+void cp(void) {
 	int rfd, wfd, len;
 	char buf[SZ_FILE_BUF];
 	struct stat st_buf;
 
-	if((stat(argv[0], &st_buf) < 0) ||
-		((rfd = open(argv[0], O_RDONLY)) < 0))
-			longjmp(jump, -1);	
+	if((stat(argv[0], &st_buf) < 0) || ((rfd = open(argv[0], O_RDONLY)) < 0)) {
+			longjmp(jump, -1);
+	}
 	
 	if((wfd = creat(argv[1], st_buf.st_mode)) < 0) {
-		perror(cmd); //PRINT_ERR_RET() »ç¿ëÇÏÁö ¾Ê´Â ÀÌÀ¯´Â PRINT_ERR_RET() »ç¿ë ½Ã¿¡´Â
-		close(rfd);  //ERROR È£Ãâ ÈÄ, return ÇÏ±â¿¡ close¸¦ ÇÒ ¼ö ¾ø´Ù.
-		return;		 //±×·¸±â¶§¹®¿¡ perror(cmd)¸¦ »ç¿ëÇÏ´Â °ÍÀÌ´Ù.
+		perror(cmd); 	//PRINT_ERR_RET() ì‚¬ìš©í•˜ì§€ ì•ŠëŠ” ì´ìœ ëŠ” PRINT_ERR_RET() ì‚¬ìš© ì‹œì—ëŠ”
+		close(rfd);  	//ERROR í˜¸ì¶œ í›„, return í•˜ê¸°ì— closeë¥¼ í•  ìˆ˜ ì—†ë‹¤.
+		return;		//ê·¸ë ‡ê¸°ë•Œë¬¸ì— perror(cmd)ë¥¼ ì‚¬ìš©í•˜ëŠ” ê²ƒì´ë‹¤.
 	}
 		
 	while((len = read(rfd, buf, SZ_FILE_BUF)) > 0) {
@@ -378,22 +370,16 @@ cp(void) {
 			break;
 		}
 	}
-	if(len < 0)
+	
+	if(len < 0) {
 		perror(cmd);
+	}
 	close(rfd);
 	close(wfd);
 }
 
-// echo ´ÙÀ½¿¡ ÀÔ·ÂµÈ ¹®ÀÚ¿­À» È­¸é¿¡ ¹Ù·Î echoÇØ ÁÖ´Â ¸í·É¾î
-// »ç¿ë¹ý: echo [echoÇÒ ¹®ÀÚ¿­ ÀÔ·Â: ±æÀÌ Á¦ÇÑ ¾øÀ½]
-//   ¿¹) echo I love you. 
-// argv[0] -> "I"
-// argv[1] -> "love"
-// argv[2] -> "you."
-// argc = 3; ¿¡ÄÚÇÒ ¹®ÀåÀÇ ÃÑ ÅäÅ«(´Ü¾î)ÀÇ ¼ö
 
-void
-date(void) {
+void date(void) {
 	char stm[128];
 	time_t ttm = time(NULL);
 	struct tm *ltm = localtime(&ttm);
@@ -404,17 +390,25 @@ date(void) {
 	puts(stm);
 }
 
-void
-echo(void) {
+
+// echo ë‹¤ìŒì— ìž…ë ¥ëœ ë¬¸ìžì—´ì„ í™”ë©´ì— ë°”ë¡œ echoí•´ ì£¼ëŠ” ëª…ë ¹ì–´
+// ì‚¬ìš©ë²•: echo [echoí•  ë¬¸ìžì—´ ìž…ë ¥: ê¸¸ì´ ì œí•œ ì—†ìŒ]
+//   ì˜ˆ) echo I love you. 
+// argv[0] -> "I"
+// argv[1] -> "love"
+// argv[2] -> "you."
+// argc = 3; ì—ì½”í•  ë¬¸ìž¥ì˜ ì´ í† í°(ë‹¨ì–´)ì˜ ìˆ˜
+void echo(void) {
 	int i;
 
-	for(i=0; i<argc; i++)
+	for (i = 0; i < argc; i++) {
 		printf("%s ", argv[i]);
+	}
 	printf("\n");
 }
 
-void
-hostname(void) {
+
+void hostname(void) {
 	char hostname[SZ_STR_BUF];
 
 	hostname[SZ_STR_BUF] = gethostname(hostname, SZ_STR_BUF);
@@ -422,350 +416,369 @@ hostname(void) {
 	printf("\n");
 }
 
-// µð·ºÅä¸® ³»ÀÇ ÆÄÀÏ ÀÌ¸§À» º¸¿© ÁÖ´Â ¸í·É¾î
-// »ç¿ë¹ý: ls [-l] [µð·ºÅä¸® ÀÌ¸§]
-//		"-l" ¿É¼ÇÀÌ ¾øÀ¸¸é ÆÄÀÏ ÀÌ¸§¸¸, ÀÖÀ¸¸é ÆÄÀÏÀÇ »ó¼¼Á¤º¸¸¦ º¸¿© ÁÜ
-//		[µð·ºÅä¸® ÀÌ¸§]ÀÌ ¾øÀ¸¸é ÇöÀç µð·ºÅä¸®¸¦ ÀÇ¹ÌÇÔ
-// argv[0] -> "µð·ºÅä¸®ÀÌ¸§"; [µð·ºÅä¸® ÀÌ¸§]À» ÁØ °æ¿ì
-// argc = [µð·ºÅä¸® ÀÌ¸§]À» ÁØ °æ¿ì 1, ¾È ÁØ °æ¿ì 0
-// optc = "-l" ¿É¼ÇÀ» ÁØ °æ¿ì 1, ÁÖÁö ¾Ê¾ÒÀ» °æ¿ì 0
 
-void
-id(void) {
+void id(void) {
 	struct passwd *pwp;
 	struct group *grp;
 
 	pwp = (argc==1) ? getpwnam(argv[0]) : getpwuid(getuid());
-	if((pwp == NULL) || ((grp = getgrgid(pwp->pw_gid)) == NULL))
-		printf("%s : Àß¸øµÈ »ç¿ëÀÚ ÀÌ¸§ : \"%s\"\n", cmd, argv[0]);
-	else
-		printf("uid=%ld(%s) gid=%ld(%s)\n", pwp->pw_uid, pwp->pw_name, 
-											grp->gr_gid, grp->gr_name);
+	if((pwp == NULL) || ((grp = getgrgid(pwp->pw_gid)) == NULL)) {
+		printf("%s : ìž˜ëª»ëœ ì‚¬ìš©ìž ì´ë¦„ : \"%s\"\n", cmd, argv[0]);
+	} else {
+		printf("uid=%ld(%s) gid=%ld(%s)\n", pwp->pw_uid, pwp->pw_name, grp->gr_gid, grp->gr_name);
+	}
 }
 
-void
-ln(void) {
+
+void ln(void) {
 	int ret;
 
-	if(((optc==1) ? symlink(argv[0], argv[1]) : link(argv[0], argv[1])) < 0)
-		longjmp(jump, -1);	
+	if(((optc==1) ? symlink(argv[0], argv[1]) : link(argv[0], argv[1])) < 0) {
+		longjmp(jump, -1);
+	}
 }
 
-void 
-ls(void) {
+
+// ë””ë ‰í† ë¦¬ ë‚´ì˜ íŒŒì¼ ì´ë¦„ì„ ë³´ì—¬ ì£¼ëŠ” ëª…ë ¹ì–´
+// ì‚¬ìš©ë²•: ls [-l] [ë””ë ‰í† ë¦¬ ì´ë¦„]
+//		"-l" ì˜µì…˜ì´ ì—†ìœ¼ë©´ íŒŒì¼ ì´ë¦„ë§Œ, ìžˆìœ¼ë©´ íŒŒì¼ì˜ ìƒì„¸ì •ë³´ë¥¼ ë³´ì—¬ ì¤Œ
+//		[ë””ë ‰í† ë¦¬ ì´ë¦„]ì´ ì—†ìœ¼ë©´ í˜„ìž¬ ë””ë ‰í† ë¦¬ë¥¼ ì˜ë¯¸í•¨
+// argv[0] -> "ë””ë ‰í† ë¦¬ì´ë¦„"; [ë””ë ‰í† ë¦¬ ì´ë¦„]ì„ ì¤€ ê²½ìš°
+// argc = [ë””ë ‰í† ë¦¬ ì´ë¦„]ì„ ì¤€ ê²½ìš° 1, ì•ˆ ì¤€ ê²½ìš° 0
+// optc = "-l" ì˜µì…˜ì„ ì¤€ ê²½ìš° 1, ì£¼ì§€ ì•Šì•˜ì„ ê²½ìš° 0
+void ls(void) {
 	char *path;
 	DIR *dp;
 
-	//µð·ºÅä¸® ÀÌ¸§À» ÁÖÁö ¾Ê¾Ò´Ù¸é ÇöÀç µð·ºÅä¸® ¼³Á¤
+	//ë””ë ‰í† ë¦¬ ì´ë¦„ì„ ì£¼ì§€ ì•Šì•˜ë‹¤ë©´ í˜„ìž¬ ë””ë ‰í† ë¦¬ ì„¤ì •
 	path = (argc == 0) ? "." : argv[0];
 
-	if((dp = opendir(path)) == NULL)	//µð·ºÅä¸® ¿­±â
-		longjmp(jump, -1);	
-	if(optc == 0)
+	//ë””ë ‰í† ë¦¬ ì—´ê¸°
+	if((dp = opendir(path)) == NULL) {
+		longjmp(jump, -1);
+	}
+	
+	if(optc == 0) {
 		print_name(dp);
-	else
+	} else {
 		print_detail(dp, path);
-	closedir(dp);						//µð·ºÅä¸® ´Ý±â
+	}
+	
+	//ë””ë ‰í† ë¦¬ ë‹«ê¸°
+	closedir(dp);
 }
+	
 
-void
-makedir(void) {
-	if(mkdir(argv[0], 0755) < 0)
-		longjmp(jump, -1);	
-		//0755 : rwxr-xr-x
-		//ÀÌ´Â ÀÌ µð·ºÅä¸®¸¦ ¸¸µç »ç¶÷Àº ÀÌ µð·ºÅä¸®¿¡
-		//ÀÐ°í, ¾²°í, ¿Å°Ü °¥ ¼ö ÀÖÀ½
-		//±×·¯³ª ±×·ì¸â¹ö³ª ´Ù¸¥ 3ÀÚ´Â
-		//cd¸í·É¾î·Î ¿Å°Ü°¡¼­ ls¸¸ ÇÒ ¼ö ÀÖ°í
-		//±× µð·ºÅä¸®¿¡ ÆÄÀÏÀ» »ý¼ºÇÏ°Å³ª »èÁ¦´Â ÇÒ ¼ö ¾ø´Ù.
+void makedir(void) {
+	if(mkdir(argv[0], 0755) < 0) {
+		longjmp(jump, -1);
+	}
+	
+	// 0755 : rwxr-xr-x
+	// ì´ëŠ” ì´ ë””ë ‰í† ë¦¬ë¥¼ ë§Œë“  ì‚¬ëžŒì€ ì´ ë””ë ‰í† ë¦¬ì—
+	// ì½ê³ , ì“°ê³ , ì˜®ê²¨ ê°ˆ ìˆ˜ ìžˆìŒ
+	// ê·¸ëŸ¬ë‚˜ ê·¸ë£¹ë©¤ë²„ë‚˜ ë‹¤ë¥¸ 3ìžëŠ”
+	// cdëª…ë ¹ì–´ë¡œ ì˜®ê²¨ê°€ì„œ lsë§Œ í•  ìˆ˜ ìžˆê³ 
+	// ê·¸ ë””ë ‰í† ë¦¬ì— íŒŒì¼ì„ ìƒì„±í•˜ê±°ë‚˜ ì‚­ì œëŠ” í•  ìˆ˜ ì—†ë‹¤.
 }	
 
-void
-mv(void) {
-	if((link(argv[0], argv[1]) < 0) || (unlink(argv[0]) < 0))
-		longjmp(jump, -1);	
+
+void mv(void) {
+	if((link(argv[0], argv[1]) < 0) || (unlink(argv[0]) < 0)) {
+		longjmp(jump, -1);
+	}
 }
 
-void
-pwd(void) {
+
+void pwd(void) {
 	printf("%s ", cur_work_dir);
 	printf("\n");
 }
 
-// ÇÏ³ªÀÇ ÆÄÀÏÀ» »èÁ¦ÇÏ´Â ¸í·É¾î
-// »ç¿ë¹ý: rm  ÆÄÀÏÀÌ¸§
-// argv[0] -> "ÆÄÀÏÀÌ¸§"
-void
-rm(void) {
+
+// í•˜ë‚˜ì˜ íŒŒì¼ì„ ì‚­ì œí•˜ëŠ” ëª…ë ¹ì–´
+// ì‚¬ìš©ë²•: rm  íŒŒì¼ì´ë¦„
+// argv[0] -> "íŒŒì¼ì´ë¦„"
+void rm(void) {
 	struct stat buf;
 	int ret;
 	char *name = strtok(NULL, " \t\n");
 
 
-	if((lstat(argv[0], &buf) < 0) || 
-		(((S_ISDIR(buf.st_mode)) ? rmdir(argv[0]) : unlink(argv[0])) < 0))
-		longjmp(jump, -1);	
+	if((lstat(argv[0], &buf) < 0) || (((S_ISDIR(buf.st_mode)) ? rmdir(argv[0]) : unlink(argv[0])) < 0)) {
+		longjmp(jump, -1);
+	}
 
-	/*if(S_ISDIR(buf.st_mode))
+	/*
+	if(S_ISDIR(buf.st_mode))
 		ret = rmdir(argv[0]);
 	else
 		ret = unlink(argv[0]);
 	if(ret < 0)
 		longjmp(jump, -1);	
 
-	/*if(lstat(argv[1], &buf) < 0)
+	
+	if(lstat(argv[1], &buf) < 0)
 		longjmp(jump, -1);	
 	if(((S_ISDIR(buf.st_mode) ? rmdir(argv[0]) : unlink(argv[0]) < 0)
-		longjmp(jump, -1);	*/
+		longjmp(jump, -1);
+	*/
 }
 
-// ÇÁ·Î±×·¥À» Á¾·áÇÏ´Â ¸í·É¾î
-// »ç¿ë¹ý: exit
-void
-quit(void)
-{
+
+// í”„ë¡œê·¸ëž¨ì„ ì¢…ë£Œí•˜ëŠ” ëª…ë ¹ì–´
+// ì‚¬ìš©ë²•: exit
+void quit(void) {
 	exit(0);
 }
 
-// optc = "-a" ¿É¼Ç ÁÖ¸é 1, ¾È ÁÖ¸é 0
+
+// optc = "-a" ì˜µì…˜ ì£¼ë©´ 1, ì•ˆ ì£¼ë©´ 0
 void unixname(void) {
-	struct utsname un; //½Ã½ºÅÛ Á¤º¸¸¦ ÀúÀåÇÏ´Â ±¸Á¶Ã¼ º¯¼ö
+	struct utsname un; //ì‹œìŠ¤í…œ ì •ë³´ë¥¼ ì €ìž¥í•˜ëŠ” êµ¬ì¡°ì²´ ë³€ìˆ˜
 	
 	uname(&un);
 	printf("%s ", un.sysname);
 
-	if(optc)
+	if(optc) {
 		printf("%s %s %s %s", un.nodename, un.release, un.version, un.machine);
+	}
 	printf("\n");
 }
 
-void
-removedir(void) {
-	if(rmdir(argv[0]) < 0)
-		longjmp(jump, -1);	
+
+void removedir(void) {
+	if(rmdir(argv[0]) < 0) {
+		longjmp(jump, -1);
+	}
 }
 
-void
-touch(void) {
+
+void touch(void) {
 	int fd;
-	if(utime(argv[0], NULL) == 0)
+	
+	if(utime(argv[0], NULL) == 0) {
 		return ;
-	else if((errno != ENOENT) || ((fd = creat(argv[0], 0644)) < 0 ))
-		longjmp(jump, -1);	
+	} else if((errno != ENOENT) || ((fd = creat(argv[0], 0644)) < 0 )) {
+		longjmp(jump, -1);
+	}
+	
 	close(fd);
 }
 
-void
-Sleep(void) { //sleep()Àº ±âÁ¸ ¶óÀÌºê·¯¸®¿¡ Á¸ÀçÇÏ¹Ç·Î Sleep()À¸·Î ±¸ÇöÇÑ´Ù.
+
+void Sleep(void) { //sleep()ì€ ê¸°ì¡´ ë¼ì´ë¸ŒëŸ¬ë¦¬ì— ì¡´ìž¬í•˜ë¯€ë¡œ Sleep()ìœ¼ë¡œ êµ¬í˜„í•œë‹¤.
 	int sec;
 	sscanf(argv[0], "%d", &sec);
 	sleep(sec);
 }
 
-void
-whoami(void) {
+
+void whoami(void) {
 	struct passwd *pwp;
 	pwp = getpwuid(getuid());
 	printf("%s\n", pwp->pw_name);
 
-	//char* username;
-	//username = getlogin();
-	//if(username != NULL)
-	//	printf("%s", username);
-	//else
-	//	printf("ÅÍ¹Ì³Î ÀåÄ¡°¡ ¾Æ´Ï¶ó »ç¿ëÀÚ °èÁ¤Á¤º¸¸¦ ±¸ÇÒ ¼ö ¾ø½À´Ï´Ù.\n");
+	// char* username;
+	// username = getlogin();
+	// if(username != NULL)
+	// 	printf("%s", username);
+	// else
+	//	printf("í„°ë¯¸ë„ ìž¥ì¹˜ê°€ ì•„ë‹ˆë¼ ì‚¬ìš©ìž ê³„ì •ì •ë³´ë¥¼ êµ¬í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤.\n");
 }
 
-//cmd_tbl[]ÀÇ °¢ ¹è¿­ ¿ø¼Ò¿¡¼­ 
-// ¸í·É¾î Ã³¸®ÇÔ¼ö ÀÌ¸§À» »ç¿ëÇÏ±â ¶§¹®¿¡ ÀÌ ÇÔ¼öµéÀº ¾Æ·¡ cmd_tbl[] º¸´Ù 
-// ¸ÕÀú ÇÔ¼öÁ¤ÀÇ°¡ µÇ¾î¾ß ÇÏ°í ½ÇÁ¦ ¾Õ¿¡ ÀÌ¹Ì Á¤ÀÇ µÇ¾ú´Ù.
-// ±×·¯³ª help() ÇÔ¼öÀÇ Á¤ÀÇ´Â cmd_tbl[] µÚ¿¡ ÀÖ±â ¶§¹®¿¡, cmd_tbl[] ¾Õ¿¡ 
-// ÀÌ ÇÔ¼ö¸¦ ¾Æ·¡Ã³·³ ¹Ì¸® ¼±¾ðÇØ¾ß ÇÑ´Ù. help() ÇÔ¼öÁ¤ÀÇ´Â cmd_tbl[]À» 
-// Á÷Á¢ »ç¿ëÇÏ±â ¶§¹®¿¡ ¾îÂ¿ ¼ö ¾øÀÌ cmd_tbl[] µÚ¿¡ ÀÖ¾î¾ß ÇÑ´Ù.
 
+// cmd_tbl[]ì˜ ê° ë°°ì—´ ì›ì†Œì—ì„œ 
+// ëª…ë ¹ì–´ ì²˜ë¦¬í•¨ìˆ˜ ì´ë¦„ì„ ì‚¬ìš©í•˜ê¸° ë•Œë¬¸ì— ì´ í•¨ìˆ˜ë“¤ì€ ì•„ëž˜ cmd_tbl[] ë³´ë‹¤ 
+// ë¨¼ì € í•¨ìˆ˜ì •ì˜ê°€ ë˜ì–´ì•¼ í•˜ê³  ì‹¤ì œ ì•žì— ì´ë¯¸ ì •ì˜ ë˜ì—ˆë‹¤.
+// ê·¸ëŸ¬ë‚˜ help() í•¨ìˆ˜ì˜ ì •ì˜ëŠ” cmd_tbl[] ë’¤ì— ìžˆê¸° ë•Œë¬¸ì—, cmd_tbl[] ì•žì— 
+// ì´ í•¨ìˆ˜ë¥¼ ì•„ëž˜ì²˜ëŸ¼ ë¯¸ë¦¬ ì„ ì–¸í•´ì•¼ í•œë‹¤. help() í•¨ìˆ˜ì •ì˜ëŠ” cmd_tbl[]ì„ 
+// ì§ì ‘ ì‚¬ìš©í•˜ê¸° ë•Œë¬¸ì— ì–´ì©” ìˆ˜ ì—†ì´ cmd_tbl[] ë’¤ì— ìžˆì–´ì•¼ í•œë‹¤.
 void help(void);
 
+
 //***************************************************************************
-//  °¢ ¸í·É¾îº° »ó¼¼ Á¤º¸¸¦ ÀúÀåÇÑ ±¸Á¶Ã¼ ¹è¿­ cmd_tbl[]
+//  ê° ëª…ë ¹ì–´ë³„ ìƒì„¸ ì •ë³´ë¥¼ ì €ìž¥í•œ êµ¬ì¡°ì²´ ë°°ì—´ cmd_tbl[]
 //***************************************************************************
 
-#define AC_LESS_1		-1		// ¸í·É¾î ÀÎÀÚ °³¼ö°¡ 0 ¶Ç´Â 1ÀÎ °æ¿ì
-#define AC_ANY			-100	// ¸í·É¾î ÀÎÀÚ °³¼ö°¡ Á¦ÇÑ ¾ø´Â °æ¿ì(echo)
+#define AC_LESS_1		-1		// ëª…ë ¹ì–´ ì¸ìž ê°œìˆ˜ê°€ 0 ë˜ëŠ” 1ì¸ ê²½ìš°
+#define AC_ANY			-100	// ëª…ë ¹ì–´ ì¸ìž ê°œìˆ˜ê°€ ì œí•œ ì—†ëŠ” ê²½ìš°(echo)
 
-// ÇÏ³ªÀÇ ¸í·É¾î¿¡ ´ëÇÑ Á¤º¸ ±¸Á¶Ã¼
+// í•˜ë‚˜ì˜ ëª…ë ¹ì–´ì— ëŒ€í•œ ì •ë³´ êµ¬ì¡°ì²´
 typedef struct {
-	char *cmd;			// ¸í·É¾î ¹®ÀÚ¿­
-	void (*func)(void);	// ¸í·É¾î¸¦ Ã³¸®ÇÏ´Â ÇÔ¼ö ½ÃÀÛ ÁÖ¼Ò(ÇÔ¼ö ÀÌ¸§)
-	int  argc;			// ¸í·É¾î ÀÎÀÚÀÇ °³¼ö(¸í·É¾î¿Í ¿É¼ÇÀº Á¦¿Ü)
-	char *opt;			// ¿É¼Ç ¹®ÀÚ¿­: ¿¹) "-a", ¿É¼Ç ¾øÀ¸¸é ""
-	char *arg;			// ¸í·É¾î »ç¿ë¹ý Ãâ·ÂÇÒ ¶§ »ç¿ëÇÒ ¸í·É¾î ÀÎÀÚ: 
-} cmd_tbl_t;			//		¿¹) cpÀÎ °æ¿ì "¿øº»ÆÄÀÏ º¹»çÆÄÀÏ""
+	char *cmd;			// ëª…ë ¹ì–´ ë¬¸ìžì—´
+	void (*func)(void);		// ëª…ë ¹ì–´ë¥¼ ì²˜ë¦¬í•˜ëŠ” í•¨ìˆ˜ ì‹œìž‘ ì£¼ì†Œ(í•¨ìˆ˜ ì´ë¦„)
+	int  argc;			// ëª…ë ¹ì–´ ì¸ìžì˜ ê°œìˆ˜(ëª…ë ¹ì–´ì™€ ì˜µì…˜ì€ ì œì™¸)
+	char *opt;			// ì˜µì…˜ ë¬¸ìžì—´: ì˜ˆ) "-a", ì˜µì…˜ ì—†ìœ¼ë©´ ""
+	char *arg;			// ëª…ë ¹ì–´ ì‚¬ìš©ë²• ì¶œë ¥í•  ë•Œ ì‚¬ìš©í•  ëª…ë ¹ì–´ ì¸ìž: 
+} cmd_tbl_t;			//		ì˜ˆ) cpì¸ ê²½ìš° "ì›ë³¸íŒŒì¼ ë³µì‚¬íŒŒì¼""
 
 cmd_tbl_t cmd_tbl[] = {
-//	  ¸í·É¾î		¸í·É¾î		¸í·É¾î				¸í·É¾î »ç¿ë¹ý Ãâ·Â ½Ã
-//	   ÀÌ¸§			Ã³¸®		ÀÎÀÚ		¸í·É¾î	»ç¿ëÇÒ ¸í·É¾î
-//	  ¹®ÀÚ¿­ 		ÇÔ¼öÀÌ¸§	°³¼ö		¿É¼Ç	ÀÎÀÚ
-	{ "cat",		cat,		1,			"",		"ÆÄÀÏÀÌ¸§" },
-	{ "cd",			cd,			AC_LESS_1,	"",		"[µð·ºÅä¸®ÀÌ¸§]"},
-	{ "chmod",		changemod,	2,			"",		"8Áø¼ömode ÆÄÀÏÀÌ¸§"},
-	{ "cp",			cp,			2,			"",		"¿øº»ÆÄÀÏ  º¹»çµÈÆÄÀÏ" },
+	{ "cat",		cat,		1,			"",		"íŒŒì¼ì´ë¦„" },
+	{ "cd",			cd,			AC_LESS_1,	"",		"[ë””ë ‰í† ë¦¬ì´ë¦„]"},
+	{ "chmod",		changemod,	2,			"",		"8ì§„ìˆ˜mode íŒŒì¼ì´ë¦„"},
+	{ "cp",			cp,			2,			"",		"ì›ë³¸íŒŒì¼  ë³µì‚¬ëœíŒŒì¼" },
 	{ "date",		date,		0,			"",		"" },	
-	{ "echo",		echo,		AC_ANY,		"",		"[¿¡ÄÚÇÒ ¹®Àå]" },
+	{ "echo",		echo,		AC_ANY,		"",		"[ì—ì½”í•  ë¬¸ìž¥]" },
 	{ "help",		help,		0,			"",		"" },
 	{ "hostname",	hostname,	0,			"",		"" },
-	{ "id",			id,			AC_LESS_1,	"",		"[»ç¿ëÀÚ°èÁ¤]" },
-	{ "ln",			ln,			2,			"-s",	"¿øº»ÆÄÀÏ ¸µÅ©ÆÄÀÏ"},
-	{ "ls",			ls,			AC_LESS_1,	"-l",	"[µð·ºÅä¸®ÀÌ¸§]" },
+	{ "id",			id,			AC_LESS_1,	"",		"[ì‚¬ìš©ìžê³„ì •]" },
+	{ "ln",			ln,			2,			"-s",	"ì›ë³¸íŒŒì¼ ë§í¬íŒŒì¼"},
+	{ "ls",			ls,			AC_LESS_1,	"-l",	"[ë””ë ‰í† ë¦¬ì´ë¦„]" },
 	{ "exit",		quit,		0,			"",		"" },
-	{ "mkdir",		makedir,	1,			"",		"µð·ºÅä¸®" },
-	{ "mv",			mv,			2,			"",		"¿øº»ÆÄÀÏ  ¹Ù²ïÀÌ¸§"},
+	{ "mkdir",		makedir,	1,			"",		"ë””ë ‰í† ë¦¬" },
+	{ "mv",			mv,			2,			"",		"ì›ë³¸íŒŒì¼  ë°”ë€ì´ë¦„"},
 	{ "pwd",		pwd,		0,			"",		"" }, 
-	{ "rm",			rm,			1,			"",		"ÆÄÀÏÀÌ¸§" },
-	{ "touch",		touch,		1,			"",		"ÆÄÀÏÀÌ¸§" },
-	{ "rmdir",		removedir,	1,			"",		"µð·ºÅä¸®" },
+	{ "rm",			rm,			1,			"",		"íŒŒì¼ì´ë¦„" },
+	{ "touch",		touch,		1,			"",		"íŒŒì¼ì´ë¦„" },
+	{ "rmdir",		removedir,	1,			"",		"ë””ë ‰í† ë¦¬" },
 	{ "uname",		unixname,	0,			"",		"-a"},
 	{ "whoami",		whoami,		0,			"",		"" },
 };
-// (ÃÑ ¸í·É¾î °³¼ö) = (cmd_tbl[] ¹è¿­ ÀüÃ¼ Å©±â) / (¹è¿­ÀÇ ÇÑ ¿ø¼Ò Å©±â)
+	
+// (ì´ ëª…ë ¹ì–´ ê°œìˆ˜) = (cmd_tbl[] ë°°ì—´ ì „ì²´ í¬ê¸°) / (ë°°ì—´ì˜ í•œ ì›ì†Œ í¬ê¸°)
 int num_cmd = sizeof(cmd_tbl) / sizeof(cmd_tbl[0]);
 
-// ÀÌ ÇÁ·Î±×·¥ÀÌ Áö¿øÇÏ´Â ¸í·É¾î ¸®½ºÆ®¸¦ º¸¿© ÁÖ´Â ¸í·É¾î
-// »ç¿ë¹ý: help
-// ÀÌ ÇÔ¼ö°¡ ÀÏ¹Ý ¸í·É¾î¸¦ Ã³¸®ÇÏ´Â ÇÔ¼öµé°ú´Â ´Þ¸® ¿©±â¿¡ ¹èÄ¡µÈ °ÍÀº
-// ¹Ù·Î À§¿¡ ÀÖ´Â cmd_tbl[]À» ÀÌ ÇÔ¼ö°¡ Á÷Á¢ »ç¿ëÇÏ±â ¶§¹®ÀÌ´Ù.
-void
-help(void) {
+
+// ì´ í”„ë¡œê·¸ëž¨ì´ ì§€ì›í•˜ëŠ” ëª…ë ¹ì–´ ë¦¬ìŠ¤íŠ¸ë¥¼ ë³´ì—¬ ì£¼ëŠ” ëª…ë ¹ì–´
+// ì‚¬ìš©ë²•: help
+// ì´ í•¨ìˆ˜ê°€ ì¼ë°˜ ëª…ë ¹ì–´ë¥¼ ì²˜ë¦¬í•˜ëŠ” í•¨ìˆ˜ë“¤ê³¼ëŠ” ë‹¬ë¦¬ ì—¬ê¸°ì— ë°°ì¹˜ëœ ê²ƒì€
+// ë°”ë¡œ ìœ„ì— ìžˆëŠ” cmd_tbl[]ì„ ì´ í•¨ìˆ˜ê°€ ì§ì ‘ ì‚¬ìš©í•˜ê¸° ë•Œë¬¸ì´ë‹¤.
+void help(void) {
 	int  k;
 
-	printf("ÇöÀç Áö¿øµÇ´Â ¸í·É¾î Á¾·ùÀÔ´Ï´Ù.\n");
-	for (k = 0; k < num_cmd; ++k) 
+	printf("í˜„ìž¬ ì§€ì›ë˜ëŠ” ëª…ë ¹ì–´ ì¢…ë¥˜ìž…ë‹ˆë‹¤.\n");
+	for (k = 0; k < num_cmd; ++k) {
 		print_usage("  ", cmd_tbl[k].cmd, cmd_tbl[k].opt, cmd_tbl[k].arg);
-	
+	}
 	printf("\n");
 }
 
+	
 // run_cmd() :
-// ¿ÜºÎ ¸í·É¾î¸¦ ½ÇÇàÇØ ÁÖ´Â ÇÔ¼ö
-// cmd ÀÚ½ÅÀ» º¹Á¦ÇÏ¿© ºÎ¸ð ÇÁ·Î·¹½º´Â ÀÚ½ÄÀÌ Á¾·áÇÒ ¶§±îÁö ´ë±âÇÏ°í,
-// ÀÚ½Ä ÇÁ·Î¼¼½º´Â ¿ÜºÎ ¸í·É¾î ÇÁ·Î±×·¥À¸·Î ´ëÃ¼ÇÏ¿© ½ÇÇàÇÔ
-void
-run_cmd(void) {
+// ì™¸ë¶€ ëª…ë ¹ì–´ë¥¼ ì‹¤í–‰í•´ ì£¼ëŠ” í•¨ìˆ˜
+// cmd ìžì‹ ì„ ë³µì œí•˜ì—¬ ë¶€ëª¨ í”„ë¡œë ˆìŠ¤ëŠ” ìžì‹ì´ ì¢…ë£Œí•  ë•Œê¹Œì§€ ëŒ€ê¸°í•˜ê³ ,
+// ìžì‹ í”„ë¡œì„¸ìŠ¤ëŠ” ì™¸ë¶€ ëª…ë ¹ì–´ í”„ë¡œê·¸ëž¨ìœ¼ë¡œ ëŒ€ì²´í•˜ì—¬ ì‹¤í–‰í•¨
+void run_cmd(void) {
 	pid_t pid;
 
-	// fork()¸¦ È£ÃâÇÏ¿© ±âÁ¸¿¡ ½ÇÇà ÁßÀÎ cmd¸¦ º¹Á¦ÇÏ¿© »õ·Î¿î ÇÁ·Î¼¼½º »ý¼º.
-	// ¿¡·¯ ¹ß»ý ½Ã, ¿¡·¯ ¿øÀÎ Ãâ·Â ÈÄ ¸®ÅÏ.
+	// fork()ë¥¼ í˜¸ì¶œí•˜ì—¬ ê¸°ì¡´ì— ì‹¤í–‰ ì¤‘ì¸ cmdë¥¼ ë³µì œí•˜ì—¬ ìƒˆë¡œìš´ í”„ë¡œì„¸ìŠ¤ ìƒì„±.
+	// ì—ëŸ¬ ë°œìƒ ì‹œ, ì—ëŸ¬ ì›ì¸ ì¶œë ¥ í›„ ë¦¬í„´.
 
-	if(pid = fork() < 0 )
-		longjmp(jump, -1);	
+	if(pid = fork() < 0 ) {
+		longjmp(jump, -1);
+	}
 
-	// ÀÌÈÄ·Î µ¿ÀÏÇÑ ÇÁ·Î±×·¥(cmd) 2°³°¡ µ¿½Ã¿¡ ½ÇÇàµÇ°í ÀÖÀ¸¸ç,
-	// ÇÁ·Î±×·¥ ³»¿¡¼­ ½ÇÇàµÇ´Â À§Ä¡µµ ¹Ù·Î ÀÌ À§Ä¡¿¡¼­ ½ÇÇàµÈ´Ù.
-	// fork()ÀÇ ¸®ÅÏ°ª (pid)ÀÌ 0ÀÌ¸é ÀÚ½Ä ÇÁ·Î¼¼½ºÀÌ°í, ¾Æ´Ï¸é ºÎ¸ð ÇÁ·Î¼¼½º.
+	// ì´í›„ë¡œ ë™ì¼í•œ í”„ë¡œê·¸ëž¨(cmd) 2ê°œê°€ ë™ì‹œì— ì‹¤í–‰ë˜ê³  ìžˆìœ¼ë©°,
+	// í”„ë¡œê·¸ëž¨ ë‚´ì—ì„œ ì‹¤í–‰ë˜ëŠ” ìœ„ì¹˜ë„ ë°”ë¡œ ì´ ìœ„ì¹˜ì—ì„œ ì‹¤í–‰ëœë‹¤.
+	// fork()ì˜ ë¦¬í„´ê°’ (pid)ì´ 0ì´ë©´ ìžì‹ í”„ë¡œì„¸ìŠ¤ì´ê³ , ì•„ë‹ˆë©´ ë¶€ëª¨ í”„ë¡œì„¸ìŠ¤.
 	
 	else if (pid == 0) {
 		int i, cnt = 0;
 		char *nargv[100];
 
-		// ±âÁ¸ÀÇ ¸í·É¾î cmd, ¿É¼Ç optv[], ÀÎÀÚ argv[]¿¡ ÀúÀåµÈ Æ÷ÀÎÅÍ °ªÀ»
-		// ¼ø¼­´ë·Î nargv[]¿¡ ¿¬¼ÓÀûÀ¸·Î ÀúÀåÇÔ; nargv[]ÀÇ ¸¶Áö¸·Àº NULL.
-		nargv[cnt++] = cmd; 			// ±âÁ¸ÀÇ cmd¸¦ nargv[]¿¡ ÀúÀå
-		for(i = 0; i < optc; ++i)
-			nargv[cnt++] = optv[i]; 	//±âÁ¸ÀÇ optv[]¸¦ nargv[]¿¡ ÀúÀå
-		for(i = 0; i < argc; ++i)
-			nargv[cnt++] = argv[i]; 	// ±âÁ¸ÀÇ argv[]¸¦ nargv[]¿¡ ÀúÀå
-		nargv[cnt++] = NULL;			//nargv[]ÀÇ ¸¶Áö¸·Àº NULLÀÌ¿©¾ß ÇÔ
+		// ê¸°ì¡´ì˜ ëª…ë ¹ì–´ cmd, ì˜µì…˜ optv[], ì¸ìž argv[]ì— ì €ìž¥ëœ í¬ì¸í„° ê°’ì„
+		// ìˆœì„œëŒ€ë¡œ nargv[]ì— ì—°ì†ì ìœ¼ë¡œ ì €ìž¥í•¨; nargv[]ì˜ ë§ˆì§€ë§‰ì€ NULL.
+		nargv[cnt++] = cmd; 			// ê¸°ì¡´ì˜ cmdë¥¼ nargv[]ì— ì €ìž¥
+		for(i = 0; i < optc; ++i) {
+			nargv[cnt++] = optv[i]; 	//ê¸°ì¡´ì˜ optv[]ë¥¼ nargv[]ì— ì €ìž¥
+		}
+		
+		for(i = 0; i < argc; ++i) {
+			nargv[cnt++] = argv[i]; 	// ê¸°ì¡´ì˜ argv[]ë¥¼ nargv[]ì— ì €ìž¥
+		}
+		nargv[cnt++] = NULL;			//nargv[]ì˜ ë§ˆì§€ë§‰ì€ NULLì´ì—¬ì•¼ í•¨
 
 		if(execvp(cmd, nargv) < 0) {
-			// ÇØ´ç ÇÁ·Î±×·¥ÀÌ³ª Á¢±Ù±ÇÇÑÀÌ ¾ø°Å³ª ½ÇÇà ÇÁ·Î±×·¥ÀÌ ¾Æ´Ò ¶§ ¿¡·¯
-			perror(cmd); // ¿©±â¼­´Â PRINT_ERR_RET() »ç¿ë X
-			exit(1); // ¿¡·¯ ¹ß»ý ½Ã ÀÚ½Ä ÇÁ·Î¼¼½º´Â Á¾·áÇØ¾ßÇÔ
+			// í•´ë‹¹ í”„ë¡œê·¸ëž¨ì´ë‚˜ ì ‘ê·¼ê¶Œí•œì´ ì—†ê±°ë‚˜ ì‹¤í–‰ í”„ë¡œê·¸ëž¨ì´ ì•„ë‹ ë•Œ ì—ëŸ¬
+			perror(cmd); 	// ì—¬ê¸°ì„œëŠ” PRINT_ERR_RET() ì‚¬ìš© X
+			exit(1); 	// ì—ëŸ¬ ë°œìƒ ì‹œ ìžì‹ í”„ë¡œì„¸ìŠ¤ëŠ” ì¢…ë£Œí•´ì•¼í•¨
 		}
-	} // ÀÚ½Ä ÇÁ·Î¼¼½º´Â ¿ÜºÎ ÇÁ·Î±×·¥À¸·Î ´ëÃ¼µÇ¾ú±â¿¡ ÀÌÈÄÀÇ ÄÚµå´Â ½ÇÇà X
-	
-	// fork()ÀÇ ¸®ÅÏ°ª(pid)ÀÌ ¾ç¼ö(pid = ÀÚ½Ä ÇÁ·Î¼¼½ºÀÇ ID)ÀÌ¸é ºÎ¸ð ÇÁ·Î¼¼½º
-	// ºÎ¸ð ÇÁ·Î¼¼½º(cmd ÇÁ·Î±×·¥)´Â ÀÚ½Ä ÇÁ·Î¼¼½º°¡ Á¾·áµÉ ¶§±îÁö
-	// ´õ ÀÌ»ó ½ÇÇàµÇÁö ¾Ê°í ¿©±â¼­ ´ë±âÇØ¾ßÇÑ´Ù.
-	// ÀÌ °úÁ¤¿¡¼­ ¿¡·¯ ¹ß»ý ½Ã, ¿¡·¯ ¿øÀÎ Ãâ·Â ÈÄ ½º½º·Î Á¾·áÇÑ´Ù.
 
-	else { //pid > 0, Áï ºÎ¸ð ÇÁ·Î¼¼½º
-		// ÀÚ½Ä(pid)ÀÌ Á¾·áµÉ ¶§±îÁö ´ë±â
-		if(waitpid(pid, NULL, 0) < 0)
+	// ìžì‹ í”„ë¡œì„¸ìŠ¤ëŠ” ì™¸ë¶€ í”„ë¡œê·¸ëž¨ìœ¼ë¡œ ëŒ€ì²´ë˜ì—ˆê¸°ì— ì´í›„ì˜ ì½”ë“œëŠ” ì‹¤í–‰ X
+	// fork()ì˜ ë¦¬í„´ê°’(pid)ì´ ì–‘ìˆ˜(pid = ìžì‹ í”„ë¡œì„¸ìŠ¤ì˜ ID)ì´ë©´ ë¶€ëª¨ í”„ë¡œì„¸ìŠ¤
+	// ë¶€ëª¨ í”„ë¡œì„¸ìŠ¤(cmd í”„ë¡œê·¸ëž¨)ëŠ” ìžì‹ í”„ë¡œì„¸ìŠ¤ê°€ ì¢…ë£Œë  ë•Œê¹Œì§€
+	// ë” ì´ìƒ ì‹¤í–‰ë˜ì§€ ì•Šê³  ì—¬ê¸°ì„œ ëŒ€ê¸°í•´ì•¼í•œë‹¤.
+	// ì´ ê³¼ì •ì—ì„œ ì—ëŸ¬ ë°œìƒ ì‹œ, ì—ëŸ¬ ì›ì¸ ì¶œë ¥ í›„ ìŠ¤ìŠ¤ë¡œ ì¢…ë£Œí•œë‹¤.
+	} else { 
+		//pid > 0, ì¦‰ ë¶€ëª¨ í”„ë¡œì„¸ìŠ¤
+		// ìžì‹(pid)ì´ ì¢…ë£Œë  ë•Œê¹Œì§€ ëŒ€ê¸°
+		if(waitpid(pid, NULL, 0) < 0) {
 			longjmp(jump, -1);	
-		// ÀÚ½Ä ÇÁ·Î¼¼½º°¡ Á¾·áµÇ¸é waitpid()´Â ÀÚ½Ä ÇÁ·Î¼¼½ºÀÇ pid°ªÀ» ¸®ÅÏ.
+		}
+		// ìžì‹ í”„ë¡œì„¸ìŠ¤ê°€ ì¢…ë£Œë˜ë©´ waitpid()ëŠ” ìžì‹ í”„ë¡œì„¸ìŠ¤ì˜ pidê°’ì„ ë¦¬í„´.
 	}
-	// ¿©±â¼­ ºÎ¸ð ÇÁ·Î¼¼½º°¡ ÀÚ½Ä ÇÁ·Î¼¼½ºÀÇ Á¾·á¸¦ ±â´Ù¸®Áö ¾ÊÀ¸¸é,
-	// ÀÚ½Ä ÇÁ·Î¼¼½º´Â Zombie ÇÁ·Î¼¼½º°¡ µÈ´Ù.
-	// ±×·¯¹Ç·Î ²À waitpid()¸¦ »ç¿ëÇÏÀÚ
+	// ì—¬ê¸°ì„œ ë¶€ëª¨ í”„ë¡œì„¸ìŠ¤ê°€ ìžì‹ í”„ë¡œì„¸ìŠ¤ì˜ ì¢…ë£Œë¥¼ ê¸°ë‹¤ë¦¬ì§€ ì•Šìœ¼ë©´,
+	// ìžì‹ í”„ë¡œì„¸ìŠ¤ëŠ” Zombie í”„ë¡œì„¸ìŠ¤ê°€ ëœë‹¤.
+	// ê·¸ëŸ¬ë¯€ë¡œ ê¼­ waitpid()ë¥¼ ì‚¬ìš©í•˜ìž
 }
 
+	
 // proc_cmd():
-// ÀÔ·ÂµÈ ¸í·É¾î¿Í µ¿ÀÏÇÑ ÀÌ¸§ÀÇ ¸í·É¾î ±¸Á¶Ã¼¸¦ cmd_tbl[] ¹è¿­ Ã£¾Æ ³½ ÈÄ
-// ¸í·É¾î ÀÎÀÚ¿Í ¿É¼ÇÀ» Á¦´ë·Î ÀÔ·ÂÇß´ÂÁö Ã¼Å©ÇÏ°í Àß¸ø µÇ¾úÀ¸¸é »ç¿ë¹ýÀ»
-// Ãâ·ÂÇÏ°í Á¤»óÀÌ¸é ÇØ´ç ¸í·É¾î¸¦ Ã³¸®ÇÏ´Â ÇÔ¼ö¸¦ È£ÃâÇÏ¿© ½ÇÇàÇÔ
-
-void
-proc_cmd(void) {
+// ìž…ë ¥ëœ ëª…ë ¹ì–´ì™€ ë™ì¼í•œ ì´ë¦„ì˜ ëª…ë ¹ì–´ êµ¬ì¡°ì²´ë¥¼ cmd_tbl[] ë°°ì—´ ì°¾ì•„ ë‚¸ í›„
+// ëª…ë ¹ì–´ ì¸ìžì™€ ì˜µì…˜ì„ ì œëŒ€ë¡œ ìž…ë ¥í–ˆëŠ”ì§€ ì²´í¬í•˜ê³  ìž˜ëª» ë˜ì—ˆìœ¼ë©´ ì‚¬ìš©ë²•ì„
+// ì¶œë ¥í•˜ê³  ì •ìƒì´ë©´ í•´ë‹¹ ëª…ë ¹ì–´ë¥¼ ì²˜ë¦¬í•˜ëŠ” í•¨ìˆ˜ë¥¼ í˜¸ì¶œí•˜ì—¬ ì‹¤í–‰í•¨
+void proc_cmd(void) {
 	int  k;
 
-	for (k = 0; k < num_cmd; ++k) {	// ÀÔ·ÂÇÑ ¸í·É¾î Á¤º¸¸¦ cmd_tbl[]¿¡¼­ Ã£À½
-		// Àü¿ªº¯¼öchar*cmd: »ç¿ëÀÚ°¡ ÀÔ·ÂÇÑ ¸í·É¾î ¹®ÀÚ¿­ ÁÖ¼Ò, ¿¹)cmd->"ls"
-		if (EQUAL(cmd, cmd_tbl[k].cmd)) { // ÀÔ·Â ¸í·É¾î¸¦ cmd_tbl¿¡¼­ Ã£¾ÒÀ½
+	// ìž…ë ¥í•œ ëª…ë ¹ì–´ ì •ë³´ë¥¼ cmd_tbl[]ì—ì„œ ì°¾ìŒ
+	for (k = 0; k < num_cmd; ++k) {
+		
+		// ì „ì—­ë³€ìˆ˜char*cmd: ì‚¬ìš©ìžê°€ ìž…ë ¥í•œ ëª…ë ¹ì–´ ë¬¸ìžì—´ ì£¼ì†Œ, ì˜ˆ)cmd->"ls"
+		if (EQUAL(cmd, cmd_tbl[k].cmd)) { // ìž…ë ¥ ëª…ë ¹ì–´ë¥¼ cmd_tblì—ì„œ ì°¾ì•˜ìŒ
 			cmd_idx = k;
 			check_arg(cmd_tbl[k].argc);
 			check_opt(cmd_tbl[k].opt);
 			cmd_tbl[k].func();
 
 			return ;
-			/*if ((check_arg(cmd_tbl[k].argc) < 0) || 	// ÀÎÀÚ °³¼ö Ã¼Å©
-				(check_opt(cmd_tbl[k].opt)  < 0))		// ¿É¼Ç Ã¼Å©
-				// ÀÎÀÚ °³¼ö ¶Ç´Â ¿É¼ÇÀÌ Àß¸ø µÇ¾úÀ½: »ç¿ë¹ý Ãâ·Â
-				print_usage("»ç¿ë¹ý: ", cmd_tbl[k].cmd,
+			/*
+			if ((check_arg(cmd_tbl[k].argc) < 0) || 	// ì¸ìž ê°œìˆ˜ ì²´í¬
+				(check_opt(cmd_tbl[k].opt)  < 0))		// ì˜µì…˜ ì²´í¬
+				// ì¸ìž ê°œìˆ˜ ë˜ëŠ” ì˜µì…˜ì´ ìž˜ëª» ë˜ì—ˆìŒ: ì‚¬ìš©ë²• ì¶œë ¥
+				print_usage("ì‚¬ìš©ë²•: ", cmd_tbl[k].cmd,
 									    cmd_tbl[k].opt, cmd_tbl[k].arg);
 			else
-				cmd_tbl[k].func();		// ¸í·É¾î¸¦ Ã³¸®ÇÏ´Â ÇÔ¼ö¸¦ È£Ãâ
+				cmd_tbl[k].func();		// ëª…ë ¹ì–´ë¥¼ ì²˜ë¦¬í•˜ëŠ” í•¨ìˆ˜ë¥¼ í˜¸ì¶œ
 
-			return;*/
+			return;
+			*/
 		}
 	}
-	// »ç¿ëÀÚ°¡ ÀÔ·ÂÇÑ ¸í·É¾î¸¦ cmd_tbl[]¿¡¼­ Ã£Áö ¸øÇÑ °æ¿ì
+	// ì‚¬ìš©ìžê°€ ìž…ë ¥í•œ ëª…ë ¹ì–´ë¥¼ cmd_tbl[]ì—ì„œ ì°¾ì§€ ëª»í•œ ê²½ìš°
 	run_cmd();
 }
+	
 
-//***************************************************************************
-// 	main() ÇÔ¼ö
-//***************************************************************************
-int 
-main(int argc, char *argv[]) {
-	char cmd_line[SZ_STR_BUF]; 	// ÀÔ·ÂµÈ ¸í·É¾î ¶óÀÎ ÀüÃ¼¸¦ ÀúÀå °ø°£
-	int cmd_count = 1; //ÇöÀç ¸í·É¾î ¹øÈ£
+int main(int argc, char *argv[]) {
+	char cmd_line[SZ_STR_BUF]; 	// ìž…ë ¥ëœ ëª…ë ¹ì–´ ë¼ì¸ ì „ì²´ë¥¼ ì €ìž¥ ê³µê°„
+	int cmd_count = 1; 		//í˜„ìž¬ ëª…ë ¹ì–´ ë²ˆí˜¸
 	int jmpret;
 
-	setbuf(stdout, NULL);	// Ç¥ÁØ Ãâ·Â ¹öÆÛ Á¦°Å: printf() Áï½Ã È­¸é Ãâ·Â
-	setbuf(stderr, NULL);	// Ç¥ÁØ ¿¡·¯ Ãâ·Â ¹öÆÛ Á¦°Å
+	setbuf(stdout, NULL);		// í‘œì¤€ ì¶œë ¥ ë²„í¼ ì œê±°: printf() ì¦‰ì‹œ í™”ë©´ ì¶œë ¥
+	setbuf(stderr, NULL);		// í‘œì¤€ ì—ëŸ¬ ì¶œë ¥ ë²„í¼ ì œê±°
 
-	help();						// ¸í·É¾î ÀüÃ¼ ¸®½ºÆ® Ãâ·Â
-	getcwd(cur_work_dir, SZ_STR_BUF); //ÇöÀç ÀÛ¾÷ µð·ºÅä¸® ÀÌ¸§À» ±¸ÇØ¿Í 
-									  //cur_wok_dir[]¿¡ ÀúÀå
+	help();				// ëª…ë ¹ì–´ ì „ì²´ ë¦¬ìŠ¤íŠ¸ ì¶œë ¥
+	getcwd(cur_work_dir, SZ_STR_BUF); //í˜„ìž¬ ìž‘ì—… ë””ë ‰í† ë¦¬ ì´ë¦„ì„ êµ¬í•´ì™€ cur_wok_dir[]ì— ì €ìž¥
 
-	if((jmpret=setjmp(jump)) != 0) {
-		if(jmpret = -1)
+	if((jmpret = setjmp(jump)) != 0) {
+		if(jmpret = -1) {
 			perror(cmd);
-		else if(jmpret = -2)
-			print_usage("»ç¿ë¹ý: ", cmd_tbl[cmd_idx].cmd,
-									 cmd_tbl[cmd_idx].opt,
-									 cmd_tbl[cmd_idx].arg);
+		} else if(jmpret = -2) {
+			print_usage("ì‚¬ìš©ë²•: ", cmd_tbl[cmd_idx].cmd, cmd_tbl[cmd_idx].opt, cmd_tbl[cmd_idx].arg);
+		}
 	}
 
 	for (;;) {
-		// ¸í·É ÇÁ·ÒÇÁÆ® Ãâ·Â: "<ÇöÀçÀÛ¾÷µð·ºÅä¸®> ¸í·É¾î¹øÈ£: "
+		// ëª…ë ¹ í”„ë¡¬í”„íŠ¸ ì¶œë ¥: "<í˜„ìž¬ìž‘ì—…ë””ë ‰í† ë¦¬> ëª…ë ¹ì–´ë²ˆí˜¸: "
 		printf("<%s> %d: ",cur_work_dir, cmd_count ); 
-		gets(cmd_line);	// Å°º¸µå¿¡¼­ ÇÑ ÇàÀ» ÀÔ·Â ¹Þ¾Æ cmd_line[]¿¡ ÀúÀå
+		gets(cmd_line);	// í‚¤ë³´ë“œì—ì„œ í•œ í–‰ì„ ìž…ë ¥ ë°›ì•„ cmd_line[]ì— ì €ìž¥
 
-		// ÀÔ·Â¹ÞÀº ÇÑ Çà(cmd_line[])ÀÇ ¸í·É¾î, ¿É¼Ç, ÀÎÀÚ¸¦ °³º° ¹®ÀÚ¿­·Î ºÐ¸®
+		// ìž…ë ¥ë°›ì€ í•œ í–‰(cmd_line[])ì˜ ëª…ë ¹ì–´, ì˜µì…˜, ì¸ìžë¥¼ ê°œë³„ ë¬¸ìžì—´ë¡œ ë¶„ë¦¬
 		if (get_argv_optv(cmd_line) != NULL) {
 			cmd_count++;
 			proc_cmd();	
 		}
-		// else ¸í·É¾î´Â ÁÖÁö ¾Ê°í ¿£ÅÍ¸¸ Ä£ °æ¿ì ¸í·É¾î ¹øÈ£´Â Áõ°¡ÇÏÁö ¾ÊÀ½
+		// else ëª…ë ¹ì–´ëŠ” ì£¼ì§€ ì•Šê³  ì—”í„°ë§Œ ì¹œ ê²½ìš° ëª…ë ¹ì–´ ë²ˆí˜¸ëŠ” ì¦ê°€í•˜ì§€ ì•ŠìŒ
 	}
 }
